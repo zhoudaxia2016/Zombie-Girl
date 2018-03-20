@@ -26,6 +26,13 @@ let boyModel_url = './model/boy.dae'
 let landModel_url = './model/land.json'
 let boyModel, landModel
 
+if (location.protocol !== 'file:') {
+  let domain = 'https://zhoudaxia2016.github.io/'
+  let project_name = 'threejs-game/'
+  boyModel_url = domain + project_name + boyModel_url.slice(2)
+  landModel_url = domain + project_name + landModel_url.slice(2)
+}
+
 // 导入boy
 /*
 let loadBoy = newLoadPromise(boyModel_url)
@@ -154,7 +161,6 @@ function animate() {
   }
   let position = boyModel.position
   position.addVectors(position, groundHitDetect(boyModel, landModel))
-  console.log('p', position)
   //groundHitDetect(boyModel, landModel)
   render();
 }
