@@ -1,6 +1,8 @@
 let forward = false
 let turnLeft = false
 let turnRight = false
+let speed = 0.01
+let acceleration = 0.02
 function onKeydown (e) {
   switch (e.keyCode) {
     case 87:
@@ -11,6 +13,9 @@ function onKeydown (e) {
       break
     case 68:
       turnRight = true
+      break
+    case 16:
+      speed = speed + acceleration
       break
   }
 }
@@ -24,6 +29,9 @@ function onKeyup (e) {
       break
     case 68:
       turnRight = false
+      break
+    case 16:
+      speed = speed - acceleration
       break
   }
 }

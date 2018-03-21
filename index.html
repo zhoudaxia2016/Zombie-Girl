@@ -10,89 +10,53 @@
     <script src="lib/collada-loader.js"></script>
     <script src="move.js"></script>
     <script src="hitDetect.js"></script>
+    <script src="newLoadPromise.js"></script>
+    <script src="model.js"></script>
   </head>
 
   <body>
     <script>
 let scene, renderer, camera, container
-let controls, mixer, action
+let mixer, action
 let clock = new THREE.Clock(true)
 
 init()
 
-let loader = new THREE.JSONLoader()
-//let boyModel_url = '~/simple.js'
-let boyModel_url = './model/boy.dae'
-let landModel_url = './model/land.json'
-let boyModel, landModel
-
-if (location.protocol !== 'file:') {
-  let domain = 'https://zhoudaxia2016.github.io/'
-  let project_name = 'threejs-game/'
-  boyModel_url = domain + project_name + boyModel_url.slice(2)
-  landModel_url = domain + project_name + landModel_url.slice(2)
-}
-
 // 导入boy
-/*
-let loadBoy = newLoadPromise(boyModel_url)
-loadBoy.then(function ([geometry, materials]) {
-  console.log('Boy loading finished!')
-  for ( var k in materials ) {
-    materials[ k ].skinning = true;
-  }
-  let boyModel = new THREE.SkinnedMesh(geometry, materials)
-  boyModel.position.set(0, 0, 0)
-
-  scene.add(boyModel)
-
-  mixer = new THREE.AnimationMixer(boyModel)
-  console.log(boyModel.geometry)
-  mixer.clipAction(boyModel.geometry.animations[0]).play()
-
-  skeletonHelper = new THREE.SkeletonHelper(boyModel)
-  skeletonHelper.material.linewidth = 3;
-  skeletonHelper.visible = true;
-  skeletonHelper.position.set(0, 0, 0)
-  scene.add(skeletonHelper);
-})
-*/
-
-let loadBoy = new Promise(function (resolve) {
-  var loader = new THREE.ColladaLoader()
-  loader.load(boyModel_url, function (collada) {
-      resolve(collada)
-  })
-})
+let loadBoy = newLoadPromise(models.boy.url, THREE.ColladaLoader)
 loadBoy.then(function (collada) {
   let animations = collada.animations;
-  boyModel = collada.scene
-  mixer = new THREE.AnimationMixer( boyModel );
+  models.boy.obj = collada.scene
+  mixer = new THREE.AnimationMixer( models.boy.obj );
   action = mixer.clipAction(animations[0])
-  boyModel.position.set(0, 0, 0)
-  scene.add(boyModel)
-  boyModel.add(camera)
+  models.boy.obj.position.set(0, 0, 0)
+  scene.add(models.boy.obj)
+  models.boy.obj.add(camera)
   camera.position.set(0, 5, 3.5)
   camera.lookAt(0, 0, 2)
   camera.rotateZ(Math.PI)
-  /*
-  var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-  var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-  var cube = new THREE.Mesh( geometry, material );
-  cube.position.set(0, 0, 20)
-  scene.add( cube );
-  */
 })
 
-
 // 导入land
-let loadLand = newLoadPromise(landModel_url)
-loadLand.then(function ([geometry, materials]) {
+let loadLand = newLoadPromise(models.land.url, THREE.ColladaLoader)
+loadLand.then(function (collada) {
   console.log('Land loading finished!')
-  let material = materials[0]
-  landModel = new THREE.Mesh(geometry, materials)
-  landModel.position.set(0, 0, 0)
-  scene.add(landModel)
+  collada.scene.traverse(function (child) {
+    if (child.name === models.land.name) {
+      let land = models.land
+      land.obj = child
+      land.obj.position.set(0, 0, 0)
+      //scene.add(land.obj)
+    }
+    for (let key in nature_group) {
+      let group = nature_group[key]
+      if (child.name.startsWith(group.name)) {
+        group.objs.push(child)
+        //scene.add(child)
+      }
+    }
+  })
+  scene.add(collada.scene)
 })
 
 let loading = Promise.all([loadBoy, loadLand])
@@ -100,20 +64,6 @@ loading.then(function () {
   console.log('Finish loading model!')
   animate()
 })
-
-
-function updateControls () {
-  controls.update()
-}
-
-function newLoadPromise (url) {
-  let load = new Promise(function (resolve) {
-    loader.load(url, function(geometry, materials) {
-      resolve([geometry, materials])
-    })
-  })
-  return load
-}
 
 
 function init () {
@@ -148,20 +98,20 @@ function animate() {
     if (forward) {
       action.play()
       mixer.update(clock.getDelta())
-      boyModel.translateY(-0.01)
+      models.boy.obj.translateY(-speed)
     } else {
       action.stop()
     }
   }
   if (turnLeft) {
-    boyModel.rotateZ(Math.PI/100)
+    models.boy.obj.rotateZ(Math.PI/100)
   }
   if (turnRight) {
-    boyModel.rotateZ(-Math.PI/100)
+    models.boy.obj.rotateZ(-Math.PI/100)
   }
-  let position = boyModel.position
-  position.addVectors(position, groundHitDetect(boyModel, landModel))
-  //groundHitDetect(boyModel, landModel)
+  let position = models.boy.obj.position
+  position.addVectors(position, groundHitDetect(models.boy.obj, models.land.obj))
+  //groundHitDetect(models.boy.obj, models.land.obj)
   render();
 }
 
