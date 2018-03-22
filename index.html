@@ -29,13 +29,16 @@ loadBoy.then(function ([geometry, materials]) {
   for ( var k in materials ) {
     materials[k].skinning = true
   }
-  let skinnedMesh = new THREE.SkinnedMesh(geometry, new THREE.MeshFaceMaterial(materials));
+  let skinnedMesh = new THREE.SkinnedMesh(geometry, materials);
   scene.add(skinnedMesh);
   console.log('a',skinnedMesh.geometry.animations)
 
   mixer = new THREE.AnimationMixer(skinnedMesh)
-  action = mixer.clipAction('walk')
   action = mixer.clipAction(skinnedMesh.geometry.animations[0])
+  action = mixer.clipAction('walk')
+
+  action.setDuration(moveDuration)
+
   models.boy.obj = skinnedMesh
   models.boy.obj.add(camera)
   camera.position.set(0, 3, -3)
@@ -48,6 +51,7 @@ loadBoy.then(function (collada) {
   models.boy.obj = collada.scene
   mixer = new THREE.AnimationMixer( models.boy.obj );
   action = mixer.clipAction(animations[0])
+  console.log(action)
   models.boy.obj.position.set(0, 0, 0)
   scene.add(models.boy.obj)
   models.boy.obj.add(camera)
@@ -130,6 +134,7 @@ function init () {
 function animate() {
   requestAnimationFrame( animate );
   if (mixer) {
+    action.setDuration(moveDuration * initialSpeed / speed)
     if (forward) {
       action.play()
       mixer.update(clock.getDelta())
@@ -144,9 +149,9 @@ function animate() {
   if (turnRight) {
     models.boy.obj.rotateY(-Math.PI/100)
   }
-  //let position = models.boy.obj.position
-  //position.add(groundHitDetect(models.boy.obj, models.land.obj))
-  //groundHitDetect(models.boy.obj, models.land.obj)
+  let position = models.boy.obj.position
+  position.add(groundHitDetect(models.boy.obj, models.land.obj))
+  groundHitDetect(models.boy.obj, models.land.obj)
   render();
 }
 
