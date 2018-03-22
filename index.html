@@ -31,7 +31,6 @@ loadBoy.then(function ([geometry, materials]) {
   }
   let skinnedMesh = new THREE.SkinnedMesh(geometry, materials);
   scene.add(skinnedMesh);
-  console.log('a',skinnedMesh.geometry.animations)
 
   mixer = new THREE.AnimationMixer(skinnedMesh)
   action = mixer.clipAction(skinnedMesh.geometry.animations[0])
@@ -41,31 +40,15 @@ loadBoy.then(function ([geometry, materials]) {
 
   models.boy.obj = skinnedMesh
   models.boy.obj.add(camera)
-  camera.position.set(0, 3, -3)
+  camera.position.set(0, 2, -3)
   camera.lookAt(0, 1.5, 0)
 })
-/*
-let loadBoy = newLoadPromise(models.boy.url, THREE.ColladaLoader)
-loadBoy.then(function (collada) {
-  let animations = collada.animations;
-  models.boy.obj = collada.scene
-  mixer = new THREE.AnimationMixer( models.boy.obj );
-  action = mixer.clipAction(animations[0])
-  console.log(action)
-  models.boy.obj.position.set(0, 0, 0)
-  scene.add(models.boy.obj)
-  models.boy.obj.add(camera)
-  camera.position.set(0, 5, 3.5)
-  camera.lookAt(0, 0, 2)
-  camera.rotateZ(Math.PI)
-})
-*/
 
 // 导入land
-let loadLand = newLoadPromise(models.land.url, THREE.ColladaLoader)
+let loadLand = newLoadPromise(models.land.url, THREE.ObjectLoader)
 loadLand.then(function (collada) {
   console.log('Land loading finished!')
-  collada.scene.traverse(function (child) {
+  collada.traverse(function (child) {
     if (child.name === models.land.name) {
       let land = models.land
       land.obj = child
@@ -78,7 +61,9 @@ loadLand.then(function (collada) {
       }
     }
   })
-  scene.add(collada.scene)
+  scene.add(collada)
+}, function (err) {
+  console.log(err)
 })
 
 let loading = Promise.all([loadBoy, loadLand])
@@ -101,6 +86,14 @@ loading.then(function () {
     }
   }
   */
+  let objs = initialObj()
+  let rootRect = bbox(models.land.obj)
+  qt = new QuadTree(rootRect)
+  for (let obj of objs.natures) {
+    qt.insert(obj)
+  }
+  console.log(qt.console())
+  console.log('d', qt.depth())
   animate()
 })
 
@@ -131,8 +124,8 @@ function init () {
   container.appendChild( renderer.domElement );
 }
 
-function animate() {
-  requestAnimationFrame( animate );
+function animate () {
+  requestAnimationFrame(animate);
   if (mixer) {
     action.setDuration(moveDuration * initialSpeed / speed)
     if (forward) {
@@ -152,6 +145,11 @@ function animate() {
   let position = models.boy.obj.position
   position.add(groundHitDetect(models.boy.obj, models.land.obj))
   groundHitDetect(models.boy.obj, models.land.obj)
+  let boyObj = new Obj(bbox(models.boy.obj), models.boy.obj)
+  let hit = qt.retrieve(boyObj)
+  if (hit) {
+    models.boy.obj.translateZ(-0.4)
+  }
   render();
 }
 
