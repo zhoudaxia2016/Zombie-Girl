@@ -100,6 +100,7 @@ function init () {
   scene.add( new THREE.AmbientLight( 0xffffff ) );
   directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
   directionalLight.position.set( 0, 100, 0 );
+  directionalLight.castShadow = true
   scene.add( directionalLight );
 
   // renderer
@@ -138,7 +139,7 @@ function animate () {
   if (hit) {
     models.boy.obj.translateZ(-0.4)
   }
-  if (!fall.b) fall()
+  //if (!fall.b) fall()
   fall.b = true
   render();
 }
