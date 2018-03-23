@@ -221,3 +221,22 @@ function initialObj () {
 function rectHitDetect (r1, r2) {
   return (r1.left > r2.right && r1.right < r2.left) && (r1.top > r2.bottom && r1.bottom < r2.top)
 }
+
+function fall () {
+  for (let value of Object.values(nature_group)) {
+    for (let obj of value.objs) {
+      let pos = obj.position.clone()
+      let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
+      let geometry = new THREE.BoxHelper(obj).geometry
+      geometry.computeBoundingBox()
+      let box = geometry.boundingBox
+      pos.y = box.min.y
+      let hitResults = ray.intersectObjects([models.land.obj])
+      if (hitResults.length > 0) {
+        let v = new THREE.Vector3(0, -hitResults[0].distance, 0)
+        obj.position.add(v)
+      }
+    }
+  }
+}
+

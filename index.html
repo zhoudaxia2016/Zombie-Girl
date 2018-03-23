@@ -30,6 +30,7 @@ loadBoy.then(function ([geometry, materials]) {
     materials[k].skinning = true
   }
   let skinnedMesh = new THREE.SkinnedMesh(geometry, materials);
+  skinnedMesh.castShadow = true
   scene.add(skinnedMesh);
 
   mixer = new THREE.AnimationMixer(skinnedMesh)
@@ -52,11 +53,14 @@ loadLand.then(function (collada) {
     if (child.name === models.land.name) {
       let land = models.land
       land.obj = child
+      land.obj.receiveShadow = true
       land.obj.position.set(0, 0, 0)
     }
     for (let key in nature_group) {
       let group = nature_group[key]
       if (child.name.startsWith(group.name)) {
+        child.castShadow = true
+        child.receiveShadow = true
         group.objs.push(child)
       }
     }
@@ -69,23 +73,7 @@ loadLand.then(function (collada) {
 let loading = Promise.all([loadBoy, loadLand])
 loading.then(function () {
   console.log('Finish loading model!')
-  // 解决物体漂浮在地面上的问题，不过计算量太大，还是直接在blender里修改
-  /*
-  for (let value of Object.values(nature_group)) {
-    for (let obj of value.objs) {
-      let vector = groundHitDetect(obj, models.land.obj)
-      let position = obj.position
-      let a = 0
-      while (vector.x !== 0 || vector.y !== 0 || vector.z !== 0) {
-        position.add(vector)
-        vector = groundHitDetect(obj, models.land.obj)
-        if (a == 100) {
-          break
-        }
-      }
-    }
-  }
-  */
+
   let objs = initialObj()
   let rootRect = bbox(models.land.obj)
   qt = new QuadTree(rootRect)
@@ -107,16 +95,16 @@ function init () {
 
   // camera
   camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 1000 );
-  camera.position.set( -10, 10, 20 );
 
   // light
   scene.add( new THREE.AmbientLight( 0xffffff ) );
   directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
-  directionalLight.position.set( 10, 10, 10 );
+  directionalLight.position.set( 0, 100, 0 );
   scene.add( directionalLight );
 
   // renderer
   renderer = new THREE.WebGLRenderer()
+  renderer.shadowMapEnabled = true;
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
   renderer.setClearColor( 0xaaaaaa )
@@ -150,6 +138,8 @@ function animate () {
   if (hit) {
     models.boy.obj.translateZ(-0.4)
   }
+  if (!fall.b) fall()
+  fall.b = true
   render();
 }
 
