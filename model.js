@@ -26,12 +26,3 @@ let nature_group = {
     objs: []
   }
 }
-
-if (location.protocol !== 'file:') {
-  let domain = 'https://zhoudaxia2016.github.io/'
-  let project_name = 'threejs-game/'
-  for (let k in models) {
-    let model = models[k]
-    model.url = domain + project_name + model.url.slice(2)
-  }
-}
