@@ -1,85 +1,63 @@
-function groundHitDetect (obj, land) {
-  let adjust = 0.01
-  let pos = obj.position
-  let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
-  let hitResults = ray.intersectObjects([land])
-  if (hitResults.length > 0) {
-    let res = hitResults[0]
-    if (res.distance < -0.01) {
-      return new THREE.Vector3(0, adjust, 0)
-    } else if (res.distance > 0.01) {
-      return new THREE.Vector3(0, -adjust, 0)
-    } else {
-      return new THREE.Vector3(0, 0, 0)
-    }
-  } else {
-    return new THREE.Vector3(0, adjust, 0)
-  }
-}
-
-// aabb
-function Rect (left, right, top, bottom) {
-  this.left = left
-  this.right = right
-  this.top = top
-  this.bottom = bottom
-}
-
-// Create bounding box
-function bbox (obj) {
-  let geometry = new THREE.BoxHelper(obj).geometry
-  geometry.computeBoundingBox()
-  let box = geometry.boundingBox
-  return new Rect(box.max.x, box.min.x, box.max.z, box.min.z)
-}
-
-// 游戏物体类
-function Obj (rect, obj) {
-  this.rect = rect
-  this.obj = obj
-}
-
 // 四叉树类
 function QuadTree (rect, maxObjs = 10) {
-  depth = 0
-
-  this.depth = function () { return depth }
+  this.depth = 0
 
   // 节点类
-  function Node (rect, data=[]) {
+  function Node (rect, datas=[]) {
     this.rect = rect
-    this.data = data
+    this.datas = datas
     this.children = null
   }
 
-  let root = new Node(rect)
+  this.root = new Node(rect)
 
-  this.insert = function (obj) {
-    insert(root, obj, 0)
+  this.clone = function () {
+    let cloneTree = new QuadTree(this.rect)
+    cloneTree.root = clone(this.root)
+    cloneTree.depth = this.depth
+    return cloneTree
   }
 
-  function insert (node, obj, d) {
+  function clone (node) {
+    let { left, right, top, bottom } = node.rect
+    let cloneNode = new Node(new Rect(left, right, top, bottom), node.datas.slice(0))
+    if (node.children) {
+      let children = node.children
+      let cloneChildren = new Array(4)
+      for (let i = 0; i < 4; i ++) {
+        cloneChildren[i] = clone(children[i])
+      }
+      cloneNode.children = cloneChildren
+    }
+    return cloneNode
+  }
+
+  this.insert = function (data) {
+    insert(this.root, data, 0)
+  }
+
+  function insert (node, data, d) {
     // 若有子节点，计算属于哪个象限，然后插入对应子节点
-    if (d > depth) depth = d
+    if (d > this.depth) this.depth = d
     if (node.children) {
       let children = node.children
       let { left, right, top, bottom } = node.rect
       let ax = (left + right) / 2
       let ay = (top + bottom) / 2
-      let indexs = getIndex(obj.rect, ax, ay)
-      if (indexs.size === 0) throw new Error('Object is not in the area!')
+      let indexs = getIndex(data.rect, ax, ay)
+      if (indexs.size === 0) throw new Error('Object is not in the rect!')
       if (indexs.size === 1) {
         for (let ind of indexs) {
-          insert(children[ind], obj, d+1)
+          insert(children[ind], data, d+1)
         }
       } else {
         for (let ind of indexs) {
-          let splitObj = split(obj, ind, ax, ay)
-          insert(children[ind], splitObj, d+1)
+          let splitData = split(data, ind, ax, ay)
+          insert(children[ind], splitData, d+1)
         }
       }
     // 若没有子节点，有data，新建子节点，然后重新将原来的object和新插入的object再插入该node
-    } else if (node.data.length > maxObjs) {
+    } else if (node.datas.length > maxObjs) {
       let children = new Array(4)
       let { left, right, top, bottom } = node.rect
       let ax = (left + right) / 2
@@ -89,53 +67,33 @@ function QuadTree (rect, maxObjs = 10) {
       children[2] = new Node(new Rect(ax, right, zx, bottom))
       children[3] = new Node(new Rect(left, ax, zx, bottom))
       node.children = children
-      let data = node.data
-      node.data = []
-      for (let obj_old of data) {
-        insert(node, obj_old, d)
+      let datas = node.datas
+      node.datas = []
+      for (let data_old of datas) {
+        insert(node, data_old, d)
       }
-      insert(node, obj, d)
+      insert(node, data, d)
     // 若没有子节点和数据，直接将object赋值给数据
     } else {
-      node.data.push(obj)
+      node.datas.push(data)
     }
   }
 
-  this.retrieve = function (obj) {
-    let adjacent_blocks = []
-    retrieve(root, obj, adjacent_blocks)
-    for (let i = 0, l = adjacent_blocks.length; i < l; i++) {
-      let { data, part } = adjacent_blocks[i]
-      let rect = part.rect
-      for (let o of data) {
-        if (rectHitDetect(o.rect, rect)) {
-          return true
-        }
-      }
-    }
-    return false
+  this.getDatas = function () {
+    let dataSet = []
+    traversalLeaf(this.root, function (datas) {
+      dataSet.push(datas)
+    })
+    return dataSet
   }
 
-  function retrieve (node, obj, ab) {
+  function traversalLeaf (node, cb) {
     if (node.children) {
-      let children = node.children
-      let { left, right, top, bottom } = node.rect
-      let ax = (left + right) / 2
-      let ay = (top + bottom) / 2
-      let indexs = getIndex(obj.rect, ax, ay)
-      if (indexs.size === 0) throw new Error('Object is not in the area!')
-      if (indexs.size === 1) {
-        for (let ind of indexs) {
-          retrieve(children[ind], obj, ab)
-        }
-      } else {
-        for (let ind of indexs) {
-          let splitObj = split(obj, ind, ax, ay)
-          retrieve(children[ind], splitObj, ab)
-        }
+      for (let child of node.children) {
+        traversalLeaf(child, cb)
       }
-    } else if (node.data.length > 0) {
-      ab.push({ data: node.data, part: obj })
+    } else if (node.datas.length > 1 ) {
+      cb(node.datas)
     }
   }
 
@@ -176,8 +134,8 @@ function QuadTree (rect, maxObjs = 10) {
     return set
   }
 
-  function split (obj, index, ax, ay) {
-      let { left, right, top, bottom } = obj.rect
+  function split (data, index, ax, ay) {
+      let { left, right, top, bottom } = data.rect
       let splitRect
       switch (index) {
         case 0:
@@ -193,50 +151,66 @@ function QuadTree (rect, maxObjs = 10) {
           splitRect = new Rect(left, Math.max(ax, right), Math.min(ay, top), bottom)
           break
       }
-    return new Obj(splitRect, obj.obj)
+    return { rect: splitRect, obj: data.obj }
   }
-  this.console = function () {
-    console.log(root)
-  }
-}
-
-// 初始化物体
-function initialObj () {
-  let objs = {}
-  let boy = models.boy.obj
-  objs.person = new Obj(bbox(boy), boy)
-  let nature_objs = []
-  for (let k in nature_group) {
-    // 草太小，不需要碰撞检测
-    if (k === 'grasses') continue
-    let natures = nature_group[k].objs
-    natures.forEach(item => {
-      nature_objs.push(new Obj(bbox(item), item))
-    })
-  }
-  objs.natures = nature_objs
-  return objs
 }
 
 function rectHitDetect (r1, r2) {
   return (r1.left > r2.right && r1.right < r2.left) && (r1.top > r2.bottom && r1.bottom < r2.top)
 }
 
-function fall () {
-  for (let value of Object.values(nature_group)) {
-    for (let obj of value.objs) {
-      let pos = obj.position.clone()
-      let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
-      let geometry = new THREE.BoxHelper(obj).geometry
-      geometry.computeBoundingBox()
-      let box = geometry.boundingBox
-      pos.y = box.min.y
-      let hitResults = ray.intersectObjects([models.land.obj])
-      if (hitResults.length > 0) {
-        let v = new THREE.Vector3(0, -hitResults[0].distance, 0)
-        obj.position.add(v)
+function createQuadTree () {
+  let qtree = new QuadTree(land.rect)
+  for (let surroundding of surrounddings) {
+    if (!surroundding.model.name.startsWith('grass')) {
+      qtree.insert({ obj: surroundding, rect: surroundding.rect })
+    }
+  }
+  return qtree
+}
+
+function getHitPairs (dataSet) {
+  let pairs = []
+  for (let datas of dataSet) {
+    for (let i = 0; i < datas.length - 1; i ++) {
+      for (let j = i + 1; j < datas.length; j ++) {
+        let obj1 = datas[i].obj, obj2 = datas[j].obj
+        let a
+        if (obj1 instanceof Person && obj2.model.name == 'Icosphere.024') {
+          a = 3
+        }
+        if (obj2 instanceof Person && obj1.model.name == 'Icosphere.024') {
+          a = 3
+        }
+        if ((obj1 instanceof Person && obj2 instanceof Surroundding) || obj2 instanceof Person && obj1 instanceof Surroundding) {
+          let uuid1 = obj1.model.uuid, uuid2 = obj2.model.uuid
+          if (pairs.findIndex((item) => {
+            let u1 = item[0].model.uuid, u2 = item[1].model.uuid
+            return (u1 === uuid1 && u2 === uuid2) || (u1 === uuid2 && u2 === uuid1)
+          }) === -1) {
+            pairs.push([obj1, obj2])
+          }
+        }
+      }
+    }
+  }
+  return pairs
+}
+
+function hitDetect (qtree) {
+  let cloneTree = qtree.clone()
+  cloneTree.insert({ obj: role, rect: role.rect })
+  let dataSet = cloneTree.getDatas()
+  let hitPairs = getHitPairs(dataSet)
+  for (let pairs of hitPairs) {
+    let obj1 = pairs[0], obj2 = pairs[1]
+    if (rectHitDetect(obj1.rect, obj2.rect)) {
+      if (obj1 instanceof Person && obj2 instanceof Surroundding) {
+        obj1.retreat()
+      }
+      if (obj2 instanceof Person && obj1 instanceof Surroundding) {
+        obj2.retreat()
       }
     }
   }
 }
-

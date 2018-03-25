@@ -2,24 +2,7 @@
  * 游戏中的物体类
  */
 
-// aabb
-function Rect (left, right, top, bottom) {
-  this.left = left
-  this.right = right
-  this.top = top
-  this.bottom = bottom
-}
-
-// 获取aabb
-function getRect (model) {
-  let geometry = new THREE.BoxHelper(model).geometry
-  geometry.computeBoundingBox()
-  let box = geometry.boundingBox
-  return new Rect(box.max.x, box.min.x, box.max.z, box.min.z)
-}
-
-
-// 植物
+// 景物
 function Surroundding (model) {
   this.model = model
   this.updateRect()
@@ -109,6 +92,10 @@ Character.prototype.groundHitDetect = function (land) {
   this.model.position.add(v)
 }
 
+Character.prototype.retreat = function () {
+  this.model.translateZ(-this.speed)
+}
+
 // 加载模型
 Character.prototype.load = function () {
   let promise = newLoadPromise(this.url, THREE.JSONLoader)
@@ -174,6 +161,12 @@ Person.prototype.setCamera = function (camera) {
   camera.position.set(0, 2, -3)
   camera.lookAt(0, 1, 0)
 }
+
+function Zombie (url, speed) {
+  Character.apply(this, [url, speed])
+}
+
+Zombie.prototype = new Character()
 
 
 function onError (err) {

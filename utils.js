@@ -47,3 +47,19 @@ function newLoadPromise (url, loader) {
       break
   }
 }
+
+// 矩形（获取aabb或者四叉树节点数据会用到)
+function Rect (left, right, top, bottom) {
+  this.left = left
+  this.right = right
+  this.top = top
+  this.bottom = bottom
+}
+
+// 获取aabb
+function getRect (model) {
+  let geometry = new THREE.BoxHelper(model).geometry
+  geometry.computeBoundingBox()
+  let box = geometry.boundingBox
+  return new Rect(box.max.x, box.min.x, box.max.z, box.min.z)
+}

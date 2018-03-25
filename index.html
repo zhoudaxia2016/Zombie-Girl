@@ -10,12 +10,14 @@
     <script src="lib/collada-loader.js"></script>
     <script src="utils.js"></script>
     <script src="object.js"></script>
+    <script src="hitDetect.js"></script>
   </head>
 
   <body>
     <script>
 let scene, renderer, camera, container
 let clock = new THREE.Clock(true)
+let qtree
 
 init()
 
@@ -23,14 +25,30 @@ init()
 let role = new Person('./model/boy.json')
 let roleLoadPromise = role.load()
 
+let zombies = []
+let zombieLoadPromises = []
+for (let i = 0; i <  10; i ++) {
+  let zombie = new Zombie('./model/girlZombie.json')
+  let promise = zombie.load()
+  zombies.push(zombie)
+  zombieLoadPromises.push(promise)
+}
+
 
 // 导入land和surrounddings
 let surrounddings = [], land = {}
 let surrounddingLoadPromise = Surroundding.load('./model/land.json')
-
 let loadPromise = Promise.all([roleLoadPromise, surrounddingLoadPromise])
+
 loadPromise.then(function () {
   role.setCamera(camera)
+  qtree = createQuadTree()
+  let { left, right, top, bottom } = land.rect
+  for (let i = 0; i < zombies.length; i ++) {
+    let x = right + (left - right) * Math.random()
+    let z = bottom + (top - bottom) * Math.random()
+    zombies[i].model.position.set(x, 0, z)
+  }
   animate()
 })
 
@@ -63,12 +81,21 @@ function init () {
 
 function animate () {
   requestAnimationFrame(animate);
+  role.updateRect()
   role.move()
   role.groundHitDetect(land)
 
+  for (let zombie of zombies) {
+    zombie.updateRect()
+    zombie.groundHitDetect(land)
+  }
+
+  hitDetect(qtree)
+
+
   if (!fall.done) {
     fall.done = true
-    fall()
+//    fall()
   }
   render();
 }
