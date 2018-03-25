@@ -8,83 +8,31 @@
     </style>
     <script src="https://cdn.bootcss.com/three.js/90/three.min.js"></script>
     <script src="lib/collada-loader.js"></script>
-    <script src="move.js"></script>
-    <script src="hitDetect.js"></script>
     <script src="newLoadPromise.js"></script>
-    <script src="model.js"></script>
-    <script src="animate.js"></script>
+    <script src="object.js"></script>
   </head>
 
   <body>
     <script>
 let scene, renderer, camera, container
-let mixer, action
 let clock = new THREE.Clock(true)
 
 init()
 
-// 导入boy
-let loadBoy = newLoadPromise(models.boy.url, THREE.JSONLoader)
-loadBoy.then(function ([geometry, materials]) {
-  for ( var k in materials ) {
-    materials[k].skinning = true
-  }
-  let skinnedMesh = new THREE.SkinnedMesh(geometry, materials);
-  skinnedMesh.castShadow = true
-  scene.add(skinnedMesh);
+// 导入role
+let role = new Person('./model/boy.json')
+let roleLoadPromise = role.load()
 
-  mixer = new THREE.AnimationMixer(skinnedMesh)
-  action = mixer.clipAction(skinnedMesh.geometry.animations[0])
-  action = mixer.clipAction('walk')
 
-  action.setDuration(moveDuration)
+// 导入land和plants
+let plants = [], land = {}
+let plantLoadPromise = Plant.load('./model/land.json')
 
-  models.boy.obj = skinnedMesh
-  models.boy.obj.add(camera)
-  camera.position.set(0, 2, -3)
-  camera.lookAt(0, 1.5, 0)
-})
-
-// 导入land
-let loadLand = newLoadPromise(models.land.url, THREE.ObjectLoader)
-loadLand.then(function (collada) {
-  console.log('Land loading finished!')
-  collada.traverse(function (child) {
-    if (child.name === models.land.name) {
-      let land = models.land
-      land.obj = child
-      land.obj.receiveShadow = true
-      land.obj.position.set(0, 0, 0)
-    }
-    for (let key in nature_group) {
-      let group = nature_group[key]
-      if (child.name.startsWith(group.name)) {
-        child.castShadow = true
-        child.receiveShadow = true
-        group.objs.push(child)
-      }
-    }
-  })
-  scene.add(collada)
-}, function (err) {
-  console.log(err)
-})
-
-let loading = Promise.all([loadBoy, loadLand])
-loading.then(function () {
-  console.log('Finish loading model!')
-
-  let objs = initialObj()
-  let rootRect = bbox(models.land.obj)
-  qt = new QuadTree(rootRect)
-  for (let obj of objs.natures) {
-    qt.insert(obj)
-  }
-  console.log(qt.console())
-  console.log('d', qt.depth())
+let loadPromise = Promise.all([roleLoadPromise, plantLoadPromise])
+loadPromise.then(function () {
+  role.setCamera(camera)
   animate()
 })
-
 
 function init () {
   container = document.createElement('div')
@@ -115,32 +63,8 @@ function init () {
 
 function animate () {
   requestAnimationFrame(animate);
-  if (mixer) {
-    action.setDuration(moveDuration * initialSpeed / speed)
-    if (forward) {
-      action.play()
-      mixer.update(clock.getDelta())
-      models.boy.obj.translateZ(speed)
-    } else {
-      action.stop()
-    }
-  }
-  if (turnLeft) {
-    models.boy.obj.rotateY(Math.PI/100)
-  }
-  if (turnRight) {
-    models.boy.obj.rotateY(-Math.PI/100)
-  }
-  let position = models.boy.obj.position
-  position.add(groundHitDetect(models.boy.obj, models.land.obj))
-  groundHitDetect(models.boy.obj, models.land.obj)
-  let boyObj = new Obj(bbox(models.boy.obj), models.boy.obj)
-  let hit = qt.retrieve(boyObj)
-  if (hit) {
-    models.boy.obj.translateZ(-0.4)
-  }
-  //if (!fall.b) fall()
-  fall.b = true
+  role.move()
+  role.groundHitDetect(land)
   render();
 }
 
