@@ -20,13 +20,13 @@ function getRect (model) {
 
 
 // 植物
-function Plant (model) {
+function Surroundding (model) {
   this.model = model
   this.updateRect()
 }
 
 // 处理导入后的场景
-Plant.load = function (url) {
+Surroundding.load = function (url) {
   let promise = newLoadPromise(url, THREE.ObjectLoader)
   promise.then(function (obj) {
     obj.traverse(function (child) {
@@ -37,12 +37,12 @@ Plant.load = function (url) {
         land.rect = getRect(child)
         return
       }
-      let plant_type = ['grass', 'tree', 'pine']
-      for (let type of plant_type) {
+      let surroundding_type = ['grass', 'Cylinder', 'pine', 'Icosphere']
+      for (let type of surroundding_type) {
         if (child.name.startsWith(type)) {
           child.castShadow = true
           child.receiveShadow = true
-          plants.push(new Plant(child))
+          surrounddings.push(new Surroundding(child))
         }
       }
     })
@@ -52,13 +52,13 @@ Plant.load = function (url) {
   return promise
 }
 
-Plant.prototype.updateRect = function () {
+Surroundding.prototype.updateRect = function () {
   this.rect = getRect(this.model)
 }
 
 
 // 角色 (包括丧尸和人物)
-function Character (url, initialSpeed = 0.01, fastSpeed = 0.02, moveDuration = 1.6) {
+function Character (url, initialSpeed = 0.01, fastSpeed = 0.05, moveDuration = 1.6) {
   this.url = url
   this.moveDuration =  moveDuration
   this.forwar = this.turnLeft = this.turnRight = false
