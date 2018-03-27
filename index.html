@@ -7,6 +7,7 @@
       canvas { width: 100%; height: 100% }
     </style>
     <script src="https://cdn.bootcss.com/three.js/90/three.min.js"></script>
+    <script src="https://cdn.bootcss.com/stats.js/r17/Stats.js"></script>
     <script src="lib/collada-loader.js"></script>
     <script src="utils.js"></script>
     <script src="object.js"></script>
@@ -18,11 +19,15 @@
 let scene, renderer, camera, container
 let clock = new THREE.Clock(true)
 let qtree
+let frame = []
+
+let stats = new Stats();
+document.body.appendChild(stats.dom);
 
 init()
 
 // 导入role
-let role = new Person('./model/boy.json')
+let role = new Person('./model/boy.json', 0.02, 1.6, 0.04)
 let roleLoadPromise = role.load()
 
 let zombies = []
@@ -36,7 +41,7 @@ for (let i = 0; i <  10; i ++) {
 
 
 // 导入land和surrounddings
-let surrounddings = [], land = {}
+let surrounddings = [], land = {}, cloneLand = {}
 let surrounddingLoadPromise = Surroundding.load('./model/land.json')
 let loadPromise = Promise.all([roleLoadPromise, surrounddingLoadPromise])
 
@@ -49,6 +54,9 @@ loadPromise.then(function () {
     let z = bottom + (top - bottom) * Math.random()
     zombies[i].model.position.set(x, 0, z)
   }
+
+  let model = land.model
+  land.vertices = model.geometry.vertices.map(item => item.clone().applyMatrix4(model.matrixWorld))
   animate()
 })
 
@@ -80,28 +88,36 @@ function init () {
 }
 
 function animate () {
-  requestAnimationFrame(animate);
+  requestAnimationFrame(animate)
+
   role.updateRect()
   role.move()
   role.groundHitDetect(land)
 
+  /*
+  if (!Surroundding.fall.done) {
+    Surroundding.fall.done = true
+    Surroundding.fall(surrounddings)
+  }
+  */
+  if (!Zombie.fall.done) {
+    Zombie.fall.done = true
+    Zombie.fall(zombies)
+  }
   for (let zombie of zombies) {
+    zombie.move()
     zombie.updateRect()
-    zombie.groundHitDetect(land)
+    //zombie.groundHitDetect(land)
   }
 
   hitDetect(qtree)
 
-
-  if (!fall.done) {
-    fall.done = true
-//    fall()
-  }
-  render();
+  render()
+  stats.update()
 }
 
 function render() {
-  renderer.render( scene, camera );
+  renderer.render(scene, camera)
 }
     </script>
   </body>

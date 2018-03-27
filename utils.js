@@ -1,16 +1,15 @@
-function fall () {
-  for (let plant of surrounddings) {
-    let { model } = plant
+function fall (objs) {
+  for (let obj of objs) {
+    let { model } = obj
     let pos = model.position.clone()
     let geometry = new THREE.BoxHelper(model).geometry
     geometry.computeBoundingBox()
     let box = geometry.boundingBox
-    pos.y = box.min.y
+    pos.y = box.max.y
     let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
     let hitResults = ray.intersectObjects([land.model])
     if (hitResults.length > 0) {
-      let v = new THREE.Vector3(0, -hitResults[0].distance, 0)
-      model.position.add(v)
+      model.translateY(box.max.y - box.min.y - hitResults[0].distance)
     }
   }
 }

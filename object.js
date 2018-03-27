@@ -8,6 +8,10 @@ function Surroundding (model) {
   this.updateRect()
 }
 
+Surroundding.fall = function (surrounddings) {
+  fall(surrounddings)
+}
+
 // 处理导入后的场景
 Surroundding.load = function (url) {
   let promise = newLoadPromise(url, THREE.ObjectLoader)
@@ -18,6 +22,14 @@ Surroundding.load = function (url) {
         child.position.set(0, 0, 0)
         land.model = child
         land.rect = getRect(child)
+        /*
+        vs = child.geometry.vertices.map(item => item.clone().applyMatrix4(child.matrixWorld))
+        let vqt = new QuadTree(land.rect)
+        for (let i = 0, l = vs.length; i < l; i ++) {
+          vqt.insert(vs[i])
+        }
+        land.vqt = vqt
+        */
         return
       }
       let surroundding_type = ['grass', 'Cylinder', 'pine', 'Icosphere']
@@ -41,18 +53,22 @@ Surroundding.prototype.updateRect = function () {
 
 
 // 角色 (包括丧尸和人物)
-function Character (url, initialSpeed = 0.01, fastSpeed = 0.05, moveDuration = 1.6) {
+function Character (url, initialSpeed = 0.01, moveDuration = 1.6, fastSpeed = 0.05) {
   this.url = url
   this.moveDuration =  moveDuration
   this.forwar = this.turnLeft = this.turnRight = false
   this.initialSpeed = initialSpeed
   this.speed = initialSpeed
   this.fastSpeed = fastSpeed
+  this.needUpdateRect = true
 }
 
 // 计算包围盒
 Character.prototype.updateRect = function () {
-  this.rect = getRect(this.model)
+  if (this.needUpdateRect) {
+    this.rect = getRect(this.model)
+    this.needUpdateRect = false
+  }
 }
 
 // 人物移动
@@ -63,6 +79,12 @@ Character.prototype.move = function () {
     action.play()
     mixer.update(clock.getDelta())
     model.translateZ(speed)
+    this.computing = false
+    if (this.worker) {
+      this.worker.terminate()
+      delete this.worker
+    }
+    this.needUpdateRect = true
   } else {
     action.stop()
   }
@@ -76,20 +98,22 @@ Character.prototype.move = function () {
 
 // 与地面碰撞检测
 Character.prototype.groundHitDetect = function (land) {
-  let adjust = 0.01
-  let ray = new THREE.Raycaster(this.model.position, new THREE.Vector3(0, -1, 0))
-  let results = ray.intersectObjects([land.model])
-  let v = new THREE.Vector3(0, 0, 0)
-  if (results.length > 0) {
-    if (results[0].distance < -0.01) {
-      v = new THREE.Vector3(0, adjust, 0)
-    } else if (results[0].distance > 0.01) {
-      v = new THREE.Vector3(0, -adjust, 0)
+  if (!this.computing) {
+    console.log(this, land.vqt)
+    this.computing = true
+    this.worker = new Worker('./worker/groundHitDetect.js')
+    this.worker.postMessage({ vertices: land.vertices, rect: this.rect, character_y: this.y })
+    //this.worker.postMessage({ model: JSON.parse(JSON.stringify(this.model)) })
+    let geometryHelper = new THREE.BoxHelper(this.model).geometry
+    geometryHelper.computeBoundingBox()
+    let box = geometryHelper.boundingBox
+    this.y = box.min.y
+    this.worker.onmessage =  (e) => {
+      console.log(this.y, e.data)
+      this.model.translateY(e.data - this.y)
+      this.y = e.data
     }
-  } else {
-    v = new THREE.Vector3(0, adjust, 0)
   }
-  this.model.position.add(v)
 }
 
 Character.prototype.retreat = function () {
@@ -107,6 +131,11 @@ Character.prototype.load = function () {
     mesh.castShadow = true
     scene.add(mesh)
 
+    let geometryHelper = new THREE.BoxHelper(this.model).geometry
+    geometryHelper.computeBoundingBox()
+    let box = geometryHelper.boundingBox
+    this.y = box.min.y
+
     this.model = mesh
     this.updateRect()
     this.mixer = new THREE.AnimationMixer(mesh)
@@ -118,8 +147,8 @@ Character.prototype.load = function () {
 
 
 // 控制角色
-function Person (url) {
-  Character.apply(this, [url])
+function Person (url, speed, moveDuration, fastSpeed) {
+  Character.apply(this, [url, speed, moveDuration, fastSpeed])
   document.addEventListener('keydown', (e) => {
     switch (e.keyCode) {
       case 87:
@@ -162,11 +191,39 @@ Person.prototype.setCamera = function (camera) {
   camera.lookAt(0, 1, 0)
 }
 
-function Zombie (url, speed) {
-  Character.apply(this, [url, speed])
+function Zombie (url, speed = 0.01, moveDuration = 1) {
+  Character.apply(this, [url, speed, moveDuration])
+  this.forward = true
 }
 
 Zombie.prototype = new Character()
+
+Zombie.fall = function (zombies) {
+  fall(zombies)
+}
+
+  /*
+Zombie.prototype.move = function () {
+  let { model, mixer, action, moveDuration, initialSpeed, speed } = this
+  action.setDuration(moveDuration * initialSpeed / speed)
+  let r = Math.random()
+  if (r > 0.03) {
+    action.play()
+    mixer.update(clock.getDelta())
+    model.translateZ(speed)
+    this.computing = false
+    delete this.worker
+  } else {
+    action.stop()
+  }
+  r = Math.random()
+  if (r < 0.1) {
+    model.rotateY(Math.PI * r )
+  } else if (r > 0.9) {
+    model.rotateY(-Math.PI * (1-r))
+  }
+}
+*/
 
 
 function onError (err) {

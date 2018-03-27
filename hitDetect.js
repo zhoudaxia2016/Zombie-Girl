@@ -44,7 +44,12 @@ function QuadTree (rect, maxObjs = 10) {
       let { left, right, top, bottom } = node.rect
       let ax = (left + right) / 2
       let ay = (top + bottom) / 2
-      let indexs = getIndex(data.rect, ax, ay)
+      let indexs
+      if (data.rect) {
+        indexs = getIndex(data.rect, ax, ay)
+      } else {
+        indexs = new Set(getPointIndex(new Point(data.x, data.z)))
+      }
       if (indexs.size === 0) throw new Error('Object is not in the rect!')
       if (indexs.size === 1) {
         for (let ind of indexs) {
