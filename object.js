@@ -21,20 +21,23 @@ Surroundding.load = function (url) {
         child.receiveShadow = true
         child.position.set(0, 0, 0)
         land.model = child
-        land.rect = getRect(child)
         let { vertices, faces } = child.geometry
-        let fqt = new QuadTree(land.rect, 15)
+        land.rect = getRect(child)
+        let fqt = new QuadTree(land.rect, 20)
+        let plane
         vertices = child.geometry.vertices.map(item => item.clone().applyMatrix4(child.matrixWorld))
-        let geo = new THREE.Geometry()
-        geo.faces = [ new THREE.Face3(0, 1, 2) ]
-        let mat = new THREE.MeshBasicMaterial()
         for (let i = 0, l = faces.length; i < l; i ++) {
           let { a, b, c } = faces[i]
-          geo.vertices = [ vertices[a], vertices[b], vertices[c] ]
-          geo.computeFaceNormals()
-          let plane = new THREE.Mesh(geo, mat)
-          plane.rect = getRect(plane)
-          fqt.insert({ obj: plane, rect: plane.rect })
+          let plane = {}
+          plane.obj = [ vertices[a], vertices[b], vertices[c] ]
+          plane.rect = plane.obj.reduce((last, item) => {
+            last.left = Math.max(last.left, item.x)
+            last.top = Math.max(last.top, item.z)
+            last.right = Math.min(last.right, item.x)
+            last.bottom = Math.min(last.bottom, item.z)
+            return last
+          }, { left: -10000, top: -10000, right: 10000, bottom: 10000 })
+          fqt.insert(plane)
         }
         land.fqt = fqt
         return
@@ -88,6 +91,7 @@ Character.prototype.move = function () {
     model.translateZ(speed)
     this.computing = false
     if (this.worker) {
+      console.log('del')
       this.worker.terminate()
       delete this.worker
     }
@@ -105,23 +109,49 @@ Character.prototype.move = function () {
 
 // 与地面碰撞检测
 Character.prototype.groundHitDetect = function (land) {
+  let fqt = land.fqt
+  let model = this.model
+  let geometryHelper = new THREE.BoxHelper(model).geometry
+  geometryHelper.computeBoundingBox()
+  let box = geometryHelper.boundingBox
+  let planes = []
+  let { x, z } = model.position
+  fqt.retrieve({ obj: this.model, rect: this.rect }, function (datas) {
+    planes = planes.concat(datas.map(item => {
+      let { left, right, top, bottom } = item.rect
+      if (left <  x || right > x || top < z || bottom > z) return
+      let mat = new THREE.MeshBasicMaterial()
+      let geo = new THREE.Geometry()
+      geo.faces = [new THREE.Face3(0, 1, 2)]
+      geo.vertices = item.obj.map(item => new THREE.Vector3(item.x, item.y, item.z))
+      geo.computeFaceNormals()
+      return new THREE.Mesh(geo, mat)
+    }).filter(item => item))
+  })
+
+  let y = box.max.y
+  let pos = new THREE.Vector3(x, y, z)
+  let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
+  let results = ray.intersectObjects(planes)
+  if (results.length > 0) {
+    this.model.translateY(box.max.y -results[0].distance - box.min.y)
+  }
+
+  /*
   if (!this.computing) {
     this.computing = true
     this.worker = new Worker('./worker/groundHitDetect.js')
-    //this.worker.postMessage({ vertices: land.vertices, rect: this.rect, character_y: this.y })
-    //this.worker.postMessage({ model: JSON.parse(JSON.stringify(this.model)) })
-    let fqt = JSON.parse(JSON.stringify(land.fqt))
-    let character = JSON.parse(JSON.stringify({ obj: this.model, rect: this.rect}))
-    this.worker.postMessage({ fqt, character })
     let geometryHelper = new THREE.BoxHelper(this.model).geometry
     geometryHelper.computeBoundingBox()
     let box = geometryHelper.boundingBox
-    this.y = box.min.y
+    let character = { obj: { position: this.model.position, min: box.min.y, max: box.max.y }, rect: this.rect}
+    this.worker.postMessage({ fqt: land.fqt, character })
     this.worker.onmessage =  (e) => {
-      this.model.translateY(e.data - this.y)
-      this.y = e.data
+      console.log('finished')
+      this.model.translateY(box.max.y -e.data - box.min.y)
     }
   }
+  */
 }
 
 Character.prototype.retreat = function () {
