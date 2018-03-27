@@ -22,14 +22,21 @@ Surroundding.load = function (url) {
         child.position.set(0, 0, 0)
         land.model = child
         land.rect = getRect(child)
-        /*
-        vs = child.geometry.vertices.map(item => item.clone().applyMatrix4(child.matrixWorld))
-        let vqt = new QuadTree(land.rect)
-        for (let i = 0, l = vs.length; i < l; i ++) {
-          vqt.insert(vs[i])
+        let { vertices, faces } = child.geometry
+        let fqt = new QuadTree(land.rect, 15)
+        vertices = child.geometry.vertices.map(item => item.clone().applyMatrix4(child.matrixWorld))
+        let geo = new THREE.Geometry()
+        geo.faces = [ new THREE.Face3(0, 1, 2) ]
+        let mat = new THREE.MeshBasicMaterial()
+        for (let i = 0, l = faces.length; i < l; i ++) {
+          let { a, b, c } = faces[i]
+          geo.vertices = [ vertices[a], vertices[b], vertices[c] ]
+          geo.computeFaceNormals()
+          let plane = new THREE.Mesh(geo, mat)
+          plane.rect = getRect(plane)
+          fqt.insert({ obj: plane, rect: plane.rect })
         }
-        land.vqt = vqt
-        */
+        land.fqt = fqt
         return
       }
       let surroundding_type = ['grass', 'Cylinder', 'pine', 'Icosphere']
@@ -99,17 +106,18 @@ Character.prototype.move = function () {
 // 与地面碰撞检测
 Character.prototype.groundHitDetect = function (land) {
   if (!this.computing) {
-    console.log(this, land.vqt)
     this.computing = true
     this.worker = new Worker('./worker/groundHitDetect.js')
-    this.worker.postMessage({ vertices: land.vertices, rect: this.rect, character_y: this.y })
+    //this.worker.postMessage({ vertices: land.vertices, rect: this.rect, character_y: this.y })
     //this.worker.postMessage({ model: JSON.parse(JSON.stringify(this.model)) })
+    let fqt = JSON.parse(JSON.stringify(land.fqt))
+    let character = JSON.parse(JSON.stringify({ obj: this.model, rect: this.rect}))
+    this.worker.postMessage({ fqt, character })
     let geometryHelper = new THREE.BoxHelper(this.model).geometry
     geometryHelper.computeBoundingBox()
     let box = geometryHelper.boundingBox
     this.y = box.min.y
     this.worker.onmessage =  (e) => {
-      console.log(this.y, e.data)
       this.model.translateY(e.data - this.y)
       this.y = e.data
     }

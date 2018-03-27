@@ -1,3 +1,6 @@
+importScripts('../hitDetect.js')
+importScripts('../utils.js')
+/*
 onmessage = function (e) {
   let { vertices, rect, character_y } = e.data
   let { left, right, top, bottom } = rect
@@ -20,6 +23,7 @@ onmessage = function (e) {
   postMessage(land_y)
   self.close()
 }
+*/
 
 /*
 onmessage = function (e) {
@@ -37,6 +41,16 @@ onmessage = function (e) {
   } else {
     postMessage(adjust)
   }
+}
+  self.close()
+*/
+
+onmessage = function (e) {
+  let { character, fqt } = e.data
+  fqt.__proto__ = QuadTree.prototype
+  fqt.retrieve(character, function (datas) {
+    console.log('aaa', datas)
+  })
+  postMessage(0)
   self.close()
 }
-*/
