@@ -204,6 +204,10 @@ Character.prototype.update = function () {
   this.groundHitDetect(land)
 }
 
+Character.prototype.handleHit = function () {
+  this.retreat()
+}
+
 // 控制角色
 function Person (url, speed, moveDuration, fastSpeed) {
   Character.apply(this, [url, speed, moveDuration, fastSpeed])
@@ -257,11 +261,12 @@ function Zombie (url, speed = 0.02, moveDuration = 1) {
 Zombie.prototype = new Character()
 
 Zombie.prototype.load = function (listener, audioUrl) {
-  let sound = new THREE.PositionalAudio(listener)
-  let audioLoader = new THREE.AudioLoader();
   let promise = Character.prototype.load.apply(this)
   promise.then(([g, m]) => {
+    let sound = new THREE.PositionalAudio(listener)
+    sound.setVolume(0)
     this.model.add(sound)
+    let audioLoader = new THREE.AudioLoader();
     audioLoader.load(audioUrl, (buffer) => {
       sound.setBuffer(buffer)
       sound.setRefDistance(0.002)
@@ -298,6 +303,16 @@ Zombie.prototype.boundaryTest = function () {
     let r = Math.random()
     this.shiftAngle = Math.PI * (r - 0.5)
   }
+}
+
+Zombie.prototype.handleHit = function () {
+  Character.prototype.handleHit.apply(this)
+  if (Math.random() > 0.5) {
+    this.shiftAngle = Math.PI / 2
+  } else {
+    this.shiftAngle = -Math.I / 2
+  }
+  this.move()
 }
 
 function onError (err) {

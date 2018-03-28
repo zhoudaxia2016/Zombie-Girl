@@ -8,10 +8,9 @@
     </style>
     <script src="https://cdn.bootcss.com/three.js/90/three.js"></script>
     <script src="https://cdn.bootcss.com/stats.js/r17/Stats.js"></script>
-    <script src="lib/collada-loader.js"></script>
-    <script src="utils.js"></script>
-    <script src="object.js"></script>
-    <script src="hitDetect.js"></script>
+    <script src="src/utils.js"></script>
+    <script src="src/object.js"></script>
+    <script src="src/hitDetect.js"></script>
   </head>
 
   <body>
@@ -26,14 +25,14 @@ document.body.appendChild(stats.dom);
 init()
 
 // 导入role
-let role = new Person('./model/boy.json', 0.02, 1.6, 0.04)
+let role = new Person('./assets/models/boy.json', 0.02, 1.6, 0.04)
 let roleLoadPromise = role.load()
 
 let zombies = []
 let zombieLoadPromises = []
 for (let i = 0; i <  1; i ++) {
-  let zombie = new Zombie('./model/girlZombie.json')
-  let promise = zombie.load(role.listener, './audio/zombieSound1.mp3')
+  let zombie = new Zombie('./assets/models/girlZombie.json')
+  let promise = zombie.load(role.listener, '.assets/audios/zombieSound4.mp3')
   zombies.push(zombie)
   zombieLoadPromises.push(promise)
 }
@@ -41,7 +40,7 @@ for (let i = 0; i <  1; i ++) {
 
 // 导入land和surrounddings
 let surrounddings = [], land = {}, cloneLand = {}
-let surrounddingLoadPromise = Surroundding.load('./model/land.json')
+let surrounddingLoadPromise = Surroundding.load('.assets/models/land.json')
 let loadPromise = Promise.all([roleLoadPromise, surrounddingLoadPromise])
 
 loadPromise.then(function () {
@@ -89,6 +88,7 @@ function init () {
 function animate () {
   requestAnimationFrame(animate)
 
+  hitDetect(qtree)
   role.update()
   /*
   if (!Surroundding.fall.done) {
@@ -103,8 +103,6 @@ function animate () {
   for (let zombie of zombies) {
     zombie.update()
   }
-
-  hitDetect(qtree)
 
   render()
   stats.update()

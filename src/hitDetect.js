@@ -261,9 +261,9 @@ function hitDetect (qtree) {
     if (rectHitDetect(obj1.rect, obj2.rect)) {
       let a = instanceofCharSurr(obj1, obj2)
       if (a === 1) {
-        obj1.retreat()
+        obj1.handleHit()
       } else if (a === 2) {
-        obj2.retreat()
+        obj2.handleHit()
       }
     }
   }
