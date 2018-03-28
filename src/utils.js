@@ -1,16 +1,6 @@
-function fall (objs) {
+function fall (land, objs) {
   for (let obj of objs) {
-    let { model } = obj
-    let pos = model.position.clone()
-    let geometry = new THREE.BoxHelper(model).geometry
-    geometry.computeBoundingBox()
-    let box = geometry.boundingBox
-    pos.y = box.max.y
-    let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
-    let hitResults = ray.intersectObjects([land.model])
-    if (hitResults.length > 0) {
-      model.translateY(box.max.y - box.min.y - hitResults[0].distance)
-    }
+    obj.groundHitDetect(land)
   }
 }
 

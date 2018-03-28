@@ -17,10 +17,10 @@
     <script>
 let scene, renderer, camera, container
 let qtree
-let frame = []
 
-let stats = new Stats();
-document.body.appendChild(stats.dom);
+// Show fps
+let stats = new Stats()
+document.body.appendChild(stats.dom)
 
 init()
 
@@ -72,34 +72,34 @@ function init () {
   scene.add( new THREE.AmbientLight( 0xffffff ) );
   directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
   directionalLight.position.set( 0, 100, 0 );
-  //directionalLight.castShadow = true
+  directionalLight.castShadow = true
   scene.add( directionalLight );
 
   // renderer
   renderer = new THREE.WebGLRenderer()
   renderer.shadowMapEnabled = true;
-  renderer.setPixelRatio( window.devicePixelRatio );
-  renderer.setSize( window.innerWidth, window.innerHeight );
-  renderer.setClearColor( 0xaaaaaa )
+  renderer.setPixelRatio(window.devicePixelRatio)
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setClearColor(0xaaaaaa)
 
-  container.appendChild( renderer.domElement );
+  container.appendChild(renderer.domElement)
+  window.addEventListener( 'resize', onWindowResize, false)
 }
 
 function animate () {
   requestAnimationFrame(animate)
 
-  hitDetect(qtree)
-  role.update()
-  /*
-  if (!Surroundding.fall.done) {
-    Surroundding.fall(surrounddings)
+  if (!fall.surroundding_fall) {
+    fall(land, surrounddings)
+    fall.surroundding_fall = true
   }
-  */
-  if (!Zombie.fall.done) {
-    Zombie.fall(zombies)
-    Zombie.fall.done = true
+  if (!fall.zombie_fall) {
+    fall(land, zombies)
+    fall.zombie_fall = true
   }
 
+  hitDetect(qtree)
+  role.update()
   for (let zombie of zombies) {
     zombie.update()
   }
@@ -110,6 +110,13 @@ function animate () {
 
 function render() {
   renderer.render(scene, camera)
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight
+  camera.updateProjectionMatrix()
+  renderer.setSize( window.innerWidth, window.innerHeight )
+  render()
 }
     </script>
   </body>

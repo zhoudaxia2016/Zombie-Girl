@@ -8,18 +8,15 @@ function Surroundding (model) {
   this.updateRect()
 }
 
-Surroundding.fall = function (surrounddings) {
-  fall(surrounddings)
-}
-
 // 处理导入后的场景
 Surroundding.load = function (url) {
   let promise = newLoadPromise(url, THREE.ObjectLoader)
   promise.then(function (obj) {
     obj.traverse(function (child) {
       if (child.name === 'Plane') {
-        //child.receiveShadow = true
+        child.receiveShadow = true
         child.position.set(0, 0, 0)
+        child.receiveShadow = true
         land.model = child
         let { vertices, faces } = child.geometry
         land.rect = getRect(child)
@@ -45,8 +42,8 @@ Surroundding.load = function (url) {
       let surroundding_type = ['grass', 'Cylinder', 'pine', 'Icosphere']
       for (let type of surroundding_type) {
         if (child.name.startsWith(type)) {
-          //child.castShadow = true
-          //child.receiveShadow = true
+          child.castShadow = true
+          child.receiveShadow = true
           surrounddings.push(new Surroundding(child))
         }
       }
@@ -67,6 +64,34 @@ Surroundding.prototype.updateRect = function () {
   this.rect = new Rect(narrowLeft, narrowRight, narrowTop, narrowBottom)
 }
 
+Surroundding.prototype.groundHitDetect = function (land) {
+  let fqt = land.fqt
+  let model = this.model
+  let geometryHelper = new THREE.BoxHelper(model).geometry
+  geometryHelper.computeBoundingBox()
+  let box = geometryHelper.boundingBox
+  let planes = []
+  let { x, z } = model.position
+  fqt.retrieve({ obj: this.model, rect: this.rect }, function (datas) {
+    planes = planes.concat(datas.map(item => {
+      let { left, right, top, bottom } = item.rect
+      if (left <  x || right > x || top < z || bottom > z) return
+      let mat = new THREE.MeshBasicMaterial()
+      let geo = new THREE.Geometry()
+      geo.faces = [new THREE.Face3(0, 1, 2)]
+      geo.vertices = item.obj.map(item => new THREE.Vector3(item.x, item.y, item.z))
+      geo.computeFaceNormals()
+      return new THREE.Mesh(geo, mat)
+    }).filter(item => item))
+  })
+  let y = box.max.y
+  let pos = new THREE.Vector3(x, y, z)
+  let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
+  let results = ray.intersectObjects(planes)
+  if (results.length > 0) {
+    model.position.set(x, y - results[0].distance - box.min.y + model.position.y, z)
+  }
+}
 
 // 角色 (包括丧尸和人物)
 function Character (url, initialSpeed = 0.01, moveDuration = 1.6, fastSpeed = 0.05) {
@@ -128,13 +153,12 @@ Character.prototype.groundHitDetect = function (land) {
       return new THREE.Mesh(geo, mat)
     }).filter(item => item))
   })
-
   let y = box.max.y
   let pos = new THREE.Vector3(x, y, z)
   let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
   let results = ray.intersectObjects(planes)
   if (results.length > 0) {
-    this.model.translateY(box.max.y -results[0].distance - box.min.y)
+    model.translateY(box.max.y - box.min.y - results[0].distance)
   }
 }
 
@@ -146,7 +170,7 @@ Character.prototype.load = function () {
       materials[k].skinning = true
     }
     let mesh = new THREE.SkinnedMesh(geometry, materials)
-    //mesh.castShadow = true
+    mesh.castShadow = true
     scene.add(mesh)
 
     let geometryHelper = new THREE.BoxHelper(this.model).geometry
@@ -175,7 +199,7 @@ Character.prototype.boundaryTest = function () {
   let { left, right, top, bottom } = land.rect
   let position = this.model.position
   let { x, y, z } = position
-  let tolerance = 1
+  let tolerance = 3
   if (x > left - tolerance) {
     position.x = left - tolerance
     this.needUpdateRect = true
@@ -276,10 +300,6 @@ Zombie.prototype.load = function (listener, audioUrl) {
     })
   })
   return promise
-}
-
-Zombie.fall = function (zombies) {
-  fall(zombies)
 }
 
 // 丧尸随机移动
