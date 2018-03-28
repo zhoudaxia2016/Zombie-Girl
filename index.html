@@ -32,7 +32,7 @@ let zombies = []
 let zombieLoadPromises = []
 for (let i = 0; i <  1; i ++) {
   let zombie = new Zombie('./assets/models/girlZombie.json')
-  let promise = zombie.load(role.listener, '.assets/audios/zombieSound4.mp3')
+  let promise = zombie.load(role.listener, './assets/audios/zombieSound4.mp3')
   zombies.push(zombie)
   zombieLoadPromises.push(promise)
 }
@@ -40,7 +40,7 @@ for (let i = 0; i <  1; i ++) {
 
 // 导入land和surrounddings
 let surrounddings = [], land = {}, cloneLand = {}
-let surrounddingLoadPromise = Surroundding.load('.assets/models/land.json')
+let surrounddingLoadPromise = Surroundding.load('./assets/models/land.json')
 let loadPromise = Promise.all([roleLoadPromise, surrounddingLoadPromise])
 
 loadPromise.then(function () {
