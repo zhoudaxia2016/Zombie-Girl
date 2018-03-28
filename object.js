@@ -18,7 +18,7 @@ Surroundding.load = function (url) {
   promise.then(function (obj) {
     obj.traverse(function (child) {
       if (child.name === 'Plane') {
-        child.receiveShadow = true
+        //child.receiveShadow = true
         child.position.set(0, 0, 0)
         land.model = child
         let { vertices, faces } = child.geometry
@@ -45,8 +45,8 @@ Surroundding.load = function (url) {
       let surroundding_type = ['grass', 'Cylinder', 'pine', 'Icosphere']
       for (let type of surroundding_type) {
         if (child.name.startsWith(type)) {
-          child.castShadow = true
-          child.receiveShadow = true
+          //child.castShadow = true
+          //child.receiveShadow = true
           surrounddings.push(new Surroundding(child))
         }
       }
@@ -90,11 +90,6 @@ Character.prototype.move = function () {
     mixer.update(clock.getDelta())
     model.translateZ(speed)
     this.computing = false
-    if (this.worker) {
-      console.log('del')
-      this.worker.terminate()
-      delete this.worker
-    }
     this.needUpdateRect = true
   } else {
     action.stop()
@@ -136,26 +131,6 @@ Character.prototype.groundHitDetect = function (land) {
   if (results.length > 0) {
     this.model.translateY(box.max.y -results[0].distance - box.min.y)
   }
-
-  /*
-  if (!this.computing) {
-    this.computing = true
-    this.worker = new Worker('./worker/groundHitDetect.js')
-    let geometryHelper = new THREE.BoxHelper(this.model).geometry
-    geometryHelper.computeBoundingBox()
-    let box = geometryHelper.boundingBox
-    let character = { obj: { position: this.model.position, min: box.min.y, max: box.max.y }, rect: this.rect}
-    this.worker.postMessage({ fqt: land.fqt, character })
-    this.worker.onmessage =  (e) => {
-      console.log('finished')
-      this.model.translateY(box.max.y -e.data - box.min.y)
-    }
-  }
-  */
-}
-
-Character.prototype.retreat = function () {
-  this.model.translateZ(-this.speed)
 }
 
 // 加载模型
@@ -166,7 +141,7 @@ Character.prototype.load = function () {
       materials[k].skinning = true
     }
     let mesh = new THREE.SkinnedMesh(geometry, materials)
-    mesh.castShadow = true
+    //mesh.castShadow = true
     scene.add(mesh)
 
     let geometryHelper = new THREE.BoxHelper(this.model).geometry
@@ -183,6 +158,11 @@ Character.prototype.load = function () {
   return promise
 }
 
+// 后退
+Character.prototype.retreat = function () {
+  this.model.translateZ(-this.speed)
+  this.needUpdateRect = true
+}
 
 // 控制角色
 function Person (url, speed, moveDuration, fastSpeed) {
@@ -229,7 +209,7 @@ Person.prototype.setCamera = function (camera) {
   camera.lookAt(0, 1, 0)
 }
 
-function Zombie (url, speed = 0.01, moveDuration = 1) {
+function Zombie (url, speed = 0.01, moveDuration = 0.5) {
   Character.apply(this, [url, speed, moveDuration])
   this.forward = true
 }

@@ -32,7 +32,7 @@ let roleLoadPromise = role.load()
 
 let zombies = []
 let zombieLoadPromises = []
-for (let i = 0; i <  10; i ++) {
+for (let i = 0; i <  2; i ++) {
   let zombie = new Zombie('./model/girlZombie.json')
   let promise = zombie.load()
   zombies.push(zombie)
@@ -74,7 +74,7 @@ function init () {
   scene.add( new THREE.AmbientLight( 0xffffff ) );
   directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
   directionalLight.position.set( 0, 100, 0 );
-  directionalLight.castShadow = true
+  //directionalLight.castShadow = true
   scene.add( directionalLight );
 
   // renderer
@@ -90,29 +90,27 @@ function init () {
 function animate () {
   requestAnimationFrame(animate)
 
+  a = new Date().getTime()
   role.updateRect()
   role.move()
   role.groundHitDetect(land)
 
   /*
   if (!Surroundding.fall.done) {
-    Surroundding.fall.done = true
     Surroundding.fall(surrounddings)
   }
   */
-  if (!Zombie.fall.done) {
-    Zombie.fall.done = true
-    Zombie.fall(zombies)
-  }
   for (let zombie of zombies) {
     zombie.move()
     zombie.updateRect()
-    //zombie.groundHitDetect(land)
+    zombie.groundHitDetect(land)
   }
 
   hitDetect(qtree)
 
   render()
+  b = new Date().getTime()
+  console.log('ms:', b - a)
   stats.update()
 }
 

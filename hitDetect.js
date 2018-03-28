@@ -248,6 +248,7 @@ function getHitPairs (dataSet) {
 
 function hitDetect (qtree) {
   let cloneTree = qtree.clone()
+  role.stop = false
   cloneTree.insert({ obj: role, rect: role.rect })
   let dataSet = cloneTree.getDatas()
   let hitPairs = getHitPairs(dataSet)
