@@ -218,20 +218,22 @@ function createQuadTree () {
   return qtree
 }
 
+function instanceofCharSurr (o1, o2) {
+  if (o1 instanceof Character) {
+    return o2 instanceof Surroundding ? 1 : 0
+  } else if (o2 instanceof Character) {
+    return o1 instanceof Surroundding ? 2 : 0
+  }
+  return 0
+}
+
 function getHitPairs (dataSet) {
   let pairs = []
   for (let datas of dataSet) {
     for (let i = 0; i < datas.length - 1; i ++) {
       for (let j = i + 1; j < datas.length; j ++) {
         let obj1 = datas[i].obj, obj2 = datas[j].obj
-        let a
-        if (obj1 instanceof Person && obj2.model.name == 'Icosphere.024') {
-          a = 3
-        }
-        if (obj2 instanceof Person && obj1.model.name == 'Icosphere.024') {
-          a = 3
-        }
-        if ((obj1 instanceof Person && obj2 instanceof Surroundding) || obj2 instanceof Person && obj1 instanceof Surroundding) {
+        if (instanceofCharSurr(obj1, obj2)) {
           let uuid1 = obj1.model.uuid, uuid2 = obj2.model.uuid
           if (pairs.findIndex((item) => {
             let u1 = item[0].model.uuid, u2 = item[1].model.uuid
@@ -248,17 +250,19 @@ function getHitPairs (dataSet) {
 
 function hitDetect (qtree) {
   let cloneTree = qtree.clone()
-  role.stop = false
   cloneTree.insert({ obj: role, rect: role.rect })
+  for (let zombie of zombies) {
+    cloneTree.insert({ obj: zombie, rect: zombie.rect })
+  }
   let dataSet = cloneTree.getDatas()
   let hitPairs = getHitPairs(dataSet)
   for (let pairs of hitPairs) {
     let obj1 = pairs[0], obj2 = pairs[1]
     if (rectHitDetect(obj1.rect, obj2.rect)) {
-      if (obj1 instanceof Person && obj2 instanceof Surroundding) {
+      let a = instanceofCharSurr(obj1, obj2)
+      if (a === 1) {
         obj1.retreat()
-      }
-      if (obj2 instanceof Person && obj1 instanceof Surroundding) {
+      } else if (a === 2) {
         obj2.retreat()
       }
     }

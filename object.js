@@ -58,7 +58,13 @@ Surroundding.load = function (url) {
 }
 
 Surroundding.prototype.updateRect = function () {
-  this.rect = getRect(this.model)
+  let { left, right, top, bottom } = getRect(this.model)
+  let scale = this.model.name.startsWith('Icosphere') ? 1/2 : 1/3
+  let narrowRight = right + (left - right) * ((1 -scale) / 2)
+  let narrowLeft = right + (left - right) * ((1 +scale) / 2)
+  let narrowBottom = bottom + (top - bottom) * ((1 -scale) / 2)
+  let narrowTop = bottom + (top - bottom) * ((1 +scale) / 2)
+  this.rect = new Rect(narrowLeft, narrowRight, narrowTop, narrowBottom)
 }
 
 
@@ -66,11 +72,13 @@ Surroundding.prototype.updateRect = function () {
 function Character (url, initialSpeed = 0.01, moveDuration = 1.6, fastSpeed = 0.05) {
   this.url = url
   this.moveDuration =  moveDuration
-  this.forwar = this.turnLeft = this.turnRight = false
+  this.forward = false
+  this.shiftAngle = 0
   this.initialSpeed = initialSpeed
   this.speed = initialSpeed
   this.fastSpeed = fastSpeed
   this.needUpdateRect = true
+  this.clock = new THREE.Clock()
 }
 
 // 计算包围盒
@@ -83,22 +91,19 @@ Character.prototype.updateRect = function () {
 
 // 人物移动
 Character.prototype.move = function () {
-  let { model, mixer, action, forward, turnLeft, turnRight, moveDuration, initialSpeed, speed } = this
+  let { model, mixer, action, forward, shiftAngle, moveDuration, initialSpeed, speed } = this
   action.setDuration(moveDuration * initialSpeed / speed)
   if (forward) {
     action.play()
-    mixer.update(clock.getDelta())
+    mixer.update(this.clock.getDelta())
     model.translateZ(speed)
     this.computing = false
     this.needUpdateRect = true
   } else {
     action.stop()
   }
-  if (turnLeft) {
-    model.rotateY(Math.PI / 100)
-  }
-  if (turnRight) {
-    model.rotateY(-Math.PI / 100)
+  if (shiftAngle) {
+    model.rotateY(shiftAngle)
   }
 }
 
@@ -159,24 +164,60 @@ Character.prototype.load = function () {
 }
 
 // 后退
-Character.prototype.retreat = function () {
-  this.model.translateZ(-this.speed)
+Character.prototype.retreat = function (z) {
+  if (!z) z = this.speed
+  this.model.translateZ(-z)
   this.needUpdateRect = true
+}
+
+// 边界检测
+Character.prototype.boundaryTest = function () {
+  let { left, right, top, bottom } = land.rect
+  let position = this.model.position
+  let { x, y, z } = position
+  let tolerance = 1
+  if (x > left - tolerance) {
+    position.x = left - tolerance
+    this.needUpdateRect = true
+    return true
+  } else if (x < right + tolerance) {
+    position.x = right + tolerance
+    this.needUpdateRect = true
+    return true
+  }
+  if (z > top - tolerance) {
+    position.z = top - tolerance
+    this.needUpdateRect = true
+    return true
+  } else if (z < bottom + tolerance) {
+    position.z = bottom + tolerance
+    this.needUpdateRect = true
+    return true
+  }
+  return false
+}
+
+Character.prototype.update = function () {
+  this.updateRect()
+  this.boundaryTest()
+  this.move()
+  this.groundHitDetect(land)
 }
 
 // 控制角色
 function Person (url, speed, moveDuration, fastSpeed) {
   Character.apply(this, [url, speed, moveDuration, fastSpeed])
+  this.listener = new THREE.AudioListener()
   document.addEventListener('keydown', (e) => {
     switch (e.keyCode) {
       case 87:
         this.forward = true
         break
       case 65:
-        this.turnLeft = true
+        this.shiftAngle = Math.PI / 100
         break
       case 68:
-        this.turnRight = true
+        this.shiftAngle = -Math.PI / 100
         break
       case 16:
         this.speed = this.fastSpeed
@@ -189,10 +230,8 @@ function Person (url, speed, moveDuration, fastSpeed) {
         this.forward = false
         break
       case 65:
-        this.turnLeft = false
-        break
       case 68:
-        this.turnRight = false
+        this.shiftAngle = 0
         break
       case 16:
         this.speed = this.initialSpeed
@@ -205,44 +244,61 @@ Person.prototype = new Character()
 
 Person.prototype.setCamera = function (camera) {
   this.model.add(camera)
-  camera.position.set(0, 2, -3)
-  camera.lookAt(0, 1, 0)
+  camera.position.set(0, 2, -2)
+  camera.lookAt(0, 1, 1)
+  camera.add(this.listener)
 }
 
-function Zombie (url, speed = 0.01, moveDuration = 0.5) {
+function Zombie (url, speed = 0.02, moveDuration = 1) {
   Character.apply(this, [url, speed, moveDuration])
   this.forward = true
 }
 
 Zombie.prototype = new Character()
 
+Zombie.prototype.load = function (listener, audioUrl) {
+  let sound = new THREE.PositionalAudio(listener)
+  let audioLoader = new THREE.AudioLoader();
+  let promise = Character.prototype.load.apply(this)
+  promise.then(([g, m]) => {
+    this.model.add(sound)
+    audioLoader.load(audioUrl, (buffer) => {
+      sound.setBuffer(buffer)
+      sound.setRefDistance(0.002)
+      sound.setVolume(100)
+      sound.setLoop(true)
+      sound.play()
+    })
+  })
+  return promise
+}
+
 Zombie.fall = function (zombies) {
   fall(zombies)
 }
 
-  /*
-Zombie.prototype.move = function () {
-  let { model, mixer, action, moveDuration, initialSpeed, speed } = this
-  action.setDuration(moveDuration * initialSpeed / speed)
+// 丧尸随机移动
+Zombie.prototype.shift = function () {
   let r = Math.random()
-  if (r > 0.03) {
-    action.play()
-    mixer.update(clock.getDelta())
-    model.translateZ(speed)
-    this.computing = false
-    delete this.worker
+  let chance = 0.1
+  if (r < chance) {
+    this.shiftAngle = (r - (chance / 2)) * Math.PI / 2
   } else {
-    action.stop()
-  }
-  r = Math.random()
-  if (r < 0.1) {
-    model.rotateY(Math.PI * r )
-  } else if (r > 0.9) {
-    model.rotateY(-Math.PI * (1-r))
+    this.shiftAngle = 0
   }
 }
-*/
 
+Zombie.prototype.update = function () {
+  this.shift()
+  Character.prototype.update.apply(this)
+}
+
+Zombie.prototype.boundaryTest = function () {
+  if (Character.prototype.boundaryTest.apply(this)) {
+    let r = Math.random()
+    this.shiftAngle = Math.PI * (r - 0.5)
+  }
+}
 
 function onError (err) {
   console.log(err)
