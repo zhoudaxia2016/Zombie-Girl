@@ -211,7 +211,7 @@ function rectHitDetect (r1, r2) {
 function createQuadTree () {
   let qtree = new QuadTree(land.rect)
   for (let surroundding of surrounddings) {
-    if (!surroundding.model.name.startsWith('grass')) {
+    if (!surroundding.model.name.startsWith(SURROUNDDING_NAME.GRASS)) {
       qtree.insert({ obj: surroundding, rect: surroundding.rect })
     }
   }

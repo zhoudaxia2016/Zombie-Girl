@@ -13,7 +13,7 @@ Surroundding.load = function (url) {
   let promise = newLoadPromise(url, THREE.ObjectLoader)
   promise.then(function (obj) {
     obj.traverse(function (child) {
-      if (child.name === 'Plane') {
+      if (child.name === LAND_NAME) {
         child.receiveShadow = true
         child.position.set(0, 0, 0)
         child.receiveShadow = true
@@ -39,9 +39,9 @@ Surroundding.load = function (url) {
         land.fqt = fqt
         return
       }
-      let surroundding_type = ['grass', 'Cylinder', 'pine', 'Icosphere']
-      for (let type of surroundding_type) {
-        if (child.name.startsWith(type)) {
+      for (let type in SURROUNDDING_NAME) {
+        let name = SURROUNDDING_NAME[type]
+        if (child.name.startsWith(name)) {
           child.castShadow = true
           child.receiveShadow = true
           surrounddings.push(new Surroundding(child))
@@ -56,7 +56,7 @@ Surroundding.load = function (url) {
 
 Surroundding.prototype.updateRect = function () {
   let { left, right, top, bottom } = getRect(this.model)
-  let scale = this.model.name.startsWith('Icosphere') ? 1/2 : 1/3
+  let scale = this.model.name.startsWith(SURROUNDDING_NAME.ROCK) ? 1/2 : 1/3
   let narrowRight = right + (left - right) * ((1 -scale) / 2)
   let narrowLeft = right + (left - right) * ((1 +scale) / 2)
   let narrowBottom = bottom + (top - bottom) * ((1 -scale) / 2)
@@ -199,7 +199,7 @@ Character.prototype.boundaryTest = function () {
   let { left, right, top, bottom } = land.rect
   let position = this.model.position
   let { x, y, z } = position
-  let tolerance = 3
+  let tolerance = BOUNDARY_TOLERANCE
   if (x > left - tolerance) {
     position.x = left - tolerance
     this.needUpdateRect = true
@@ -242,10 +242,10 @@ function Person (url, speed, moveDuration, fastSpeed) {
         this.forward = true
         break
       case 65:
-        this.shiftAngle = Math.PI / 100
+        this.shiftAngle = ROLE.SHIFT_ANGLE
         break
       case 68:
-        this.shiftAngle = -Math.PI / 100
+        this.shiftAngle = -ROLE.SHIFT_ANGLE
         break
       case 16:
         this.speed = this.fastSpeed
@@ -277,7 +277,7 @@ Person.prototype.setCamera = function (camera) {
   camera.add(this.listener)
 }
 
-function Zombie (url, speed = 0.02, moveDuration = 1) {
+function Zombie (url, speed = ZOMBIE.INITIAL_SPEED, moveDuration = ZOMBIE.MOVE_DURATION) {
   Character.apply(this, [url, speed, moveDuration])
   this.forward = true
 }
@@ -293,8 +293,8 @@ Zombie.prototype.load = function (listener, audioUrl) {
     let audioLoader = new THREE.AudioLoader();
     audioLoader.load(audioUrl, (buffer) => {
       sound.setBuffer(buffer)
-      sound.setRefDistance(0.002)
-      sound.setVolume(100)
+      sound.setRefDistance(ZOMBIE.SOUND.DISTANCE)
+      sound.setVolume(ZOMBIE.SOUND.VOLUME)
       sound.setLoop(true)
       sound.play()
     })
@@ -305,9 +305,9 @@ Zombie.prototype.load = function (listener, audioUrl) {
 // 丧尸随机移动
 Zombie.prototype.shift = function () {
   let r = Math.random()
-  let chance = 0.1
+  let chance = ZOMBIE.SHIFT_CHANCE
   if (r < chance) {
-    this.shiftAngle = (r - (chance / 2)) * Math.PI / 2
+    this.shiftAngle = (r - chance / 2) * ZOMBIE.SHIFT_RANGE / 2
   } else {
     this.shiftAngle = 0
   }

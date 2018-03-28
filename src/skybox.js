@@ -1,13 +1,9 @@
 function createSkyBox (scene) {
-  let urlPrefix = "./assets/images/sky"
-  let urls = [ urlPrefix + "posx.jpg", urlPrefix + "negx.jpg",
-    urlPrefix + "posy.jpg", urlPrefix + "negy.jpg",
-    urlPrefix + "posz.jpg", urlPrefix + "negz.jpg" ]
-  var skyGeometry = new THREE.BoxGeometry(100, 100, 100)
-  var materialArray = [];
+  let skyGeometry = new THREE.BoxGeometry(100, 100, 100)
+  let materialArray = [];
   for (let i = 0; i < 6; i++) {
     materialArray.push(new THREE.MeshBasicMaterial({
-      map: THREE.ImageUtils.loadTexture(urls[i]),
+      map: THREE.ImageUtils.loadTexture(FILES.SKY_IMAGES[i]),
       side: THREE.BackSide
     }))
   }

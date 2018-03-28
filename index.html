@@ -8,7 +8,10 @@
     </style>
     <script src="https://cdn.bootcss.com/three.js/90/three.js"></script>
     <script src="https://cdn.bootcss.com/stats.js/r17/Stats.js"></script>
+    <script src="src/lib/Sky.js"></script>
+    <script src="src/constants.js"></script>
     <script src="src/utils.js"></script>
+    <script src="src/skybox.js"></script>
     <script src="src/object.js"></script>
     <script src="src/hitDetect.js"></script>
   </head>
@@ -25,14 +28,14 @@ document.body.appendChild(stats.dom)
 init()
 
 // 导入role
-let role = new Person('./assets/models/boy.json', 0.02, 1.6, 0.04)
+let role = new Person(FILES.ROLE, ROLE.INITIAL_SPEED, ROLE.MOVE_DURATION, ROLE.FAST_SPEED)
 let roleLoadPromise = role.load()
 
 let zombies = []
 let zombieLoadPromises = []
 for (let i = 0; i <  1; i ++) {
-  let zombie = new Zombie('./assets/models/girlZombie.json')
-  let promise = zombie.load(role.listener, './assets/audios/zombieSound4.mp3')
+  let zombie = new Zombie(FILES.ZOMBIE)
+  let promise = zombie.load(role.listener, FILES.ZOMBIE_SOUND)
   zombies.push(zombie)
   zombieLoadPromises.push(promise)
 }
@@ -40,7 +43,7 @@ for (let i = 0; i <  1; i ++) {
 
 // 导入land和surrounddings
 let surrounddings = [], land = {}, cloneLand = {}
-let surrounddingLoadPromise = Surroundding.load('./assets/models/land.json')
+let surrounddingLoadPromise = Surroundding.load(FILES.SURROUNDDING)
 let loadPromise = Promise.all([roleLoadPromise, surrounddingLoadPromise])
 
 loadPromise.then(function () {
@@ -75,6 +78,8 @@ function init () {
   directionalLight.castShadow = true
   scene.add( directionalLight );
 
+  createSkyBox(scene)
+
   // renderer
   renderer = new THREE.WebGLRenderer()
   renderer.shadowMapEnabled = true;
@@ -89,10 +94,13 @@ function init () {
 function animate () {
   requestAnimationFrame(animate)
 
+  /*
   if (!fall.surroundding_fall) {
     fall(land, surrounddings)
     fall.surroundding_fall = true
   }
+  */
+
   if (!fall.zombie_fall) {
     fall(land, zombies)
     fall.zombie_fall = true
