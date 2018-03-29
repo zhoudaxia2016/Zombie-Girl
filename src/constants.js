@@ -8,6 +8,7 @@ const FILES = {
   SURROUNDDING: MODEL_DIR + 'land.json',
   ROLE: MODEL_DIR + 'boyWithGun.json',
   ZOMBIE: MODEL_DIR + 'girlZombie.json',
+  BULLET: MODEL_DIR + 'bullet.json',
   ZOMBIE_SOUND: AUDIO_DIR + 'zombieSound4.mp3',
   SKY_IMAGES: [
     IMAGE_DIR + 'skyposx.jpg',

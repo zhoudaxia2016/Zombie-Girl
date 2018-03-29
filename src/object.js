@@ -288,9 +288,18 @@ Person.prototype = new Character()
 
 Person.prototype.update = function () {
   if (this.shootingReady) {
+    let action = this.action.shoot
     this.mixer.update(this.clock.getDelta())
-    this.action.shoot.play()
+    action.play()
+    if (this.shooting && action.paused) {
+      let bullet = new Bullet(FILES.BULLET, this.model.position, this.angle)
+      bullet.load()
+      this.shooting = false
+    } else {
+      this.shooting = false
+    }
   } else {
+    this.shooting = false
     this.action.shoot.stop()
     Character.prototype.update.apply(this)
   }
@@ -382,4 +391,25 @@ Zombie.prototype.perosonDetect = function (position) {
 
 function onError (err) {
   console.log(err)
+}
+
+function Bullet (url, position, angle, speed = 2) {
+  this.position = position
+  this.angle = angle
+  this.url = url
+  this.speed = speed
+}
+
+Bullet.prototype.load = function () {
+  let promise = newLoadPromise(this.url, THREE.JSONLoader)
+  promise.then(([geometry, materials]) => {
+    let mesh = new THREE.Mesh(geometry, materials)
+    mesh.castShadow = true
+    let { x, y, z } = this.position
+    mesh.position.set(x, y, z)
+    mesh.translateY(1)
+    mesh.translateZ(1)
+    mesh.rotateY(this.angle)
+    scene.add(mesh)
+  })
 }
