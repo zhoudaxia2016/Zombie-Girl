@@ -118,15 +118,15 @@ Character.prototype.updateRect = function () {
 // 人物移动
 Character.prototype.move = function () {
   let { model, mixer, action, forward, shiftAngle, moveDuration, initialSpeed, speed } = this
-  action.setDuration(moveDuration * initialSpeed / speed)
+  action.walk.setDuration(moveDuration * initialSpeed / speed)
   if (forward) {
-    action.play()
+    action.walk.play()
     mixer.update(this.clock.getDelta())
     model.translateZ(speed)
     this.computing = false
     this.needUpdateRect = true
   } else {
-    action.stop()
+    action.walk.stop()
   }
   if (shiftAngle) {
     model.rotateY(shiftAngle)
@@ -182,9 +182,17 @@ Character.prototype.load = function () {
 
     this.model = mesh
     this.updateRect()
-    this.mixer = new THREE.AnimationMixer(mesh)
-    this.action = this.mixer.clipAction('walk')
-    this.action.setDuration(this.moveDuration)
+    let mixer = new THREE.AnimationMixer(mesh)
+    let walkAction = mixer.clipAction('walk')
+    walkAction.setDuration(this.moveDuration)
+    let shootAction = mixer.clipAction('shoot')
+    if (shootAction) {
+      shootAction.setDuration(1)
+      shootAction.setLoop(THREE.LoopOnce)
+      shootAction.clampWhenFinished = true
+    }
+    this.action = { walk: walkAction, shoot: shootAction }
+    this.mixer = mixer
   }, onError)
   return promise
 }
@@ -266,11 +274,28 @@ function Person (url, speed, moveDuration, fastSpeed) {
       case 16:
         this.speed = this.initialSpeed
         break
+      case 81:
+        this.shootingReady = !this.shootingReady
+        break
+      case 32:
+        this.shooting = true
+        break
     }
   })
 }
 
 Person.prototype = new Character()
+
+Person.prototype.update = function () {
+  if (this.shootingReady) {
+    this.mixer.update(this.clock.getDelta())
+    this.action.shoot.play()
+  } else {
+    this.action.shoot.stop()
+    Character.prototype.update.apply(this)
+  }
+}
+
 
 Person.prototype.setCamera = function (camera) {
   this.model.add(camera)
@@ -345,7 +370,7 @@ Zombie.prototype.perosonDetect = function (position) {
   let sqrt = Math.sqrt(x**2 + z**2)
   if (sqrt < 1) {
     this.forward = false
-  } else {
+  } else if (sqrt < 10) {
     let angle_sin = Math.sin(x / sqrt)
     let angle = Math.acos(z / sqrt)
     if (angle_sin < 0 ) {

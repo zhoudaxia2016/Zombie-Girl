@@ -6,7 +6,7 @@ const IMAGE_DIR = ASSETS_DIR + 'images/'
 
 const FILES = {
   SURROUNDDING: MODEL_DIR + 'land.json',
-  ROLE: MODEL_DIR + 'boy.json',
+  ROLE: MODEL_DIR + 'boyWithGun.json',
   ZOMBIE: MODEL_DIR + 'girlZombie.json',
   ZOMBIE_SOUND: AUDIO_DIR + 'zombieSound4.mp3',
   SKY_IMAGES: [
@@ -34,7 +34,7 @@ const ROLE = {
   INITIAL_SPEED: 0.02,
   MOVE_DURATION: 1.6,
   FAST_SPEED: 0.04,
-  SHIFT_ANGLE: Math.PI / 100
+  SHIFT_ANGLE: Math.PI / 100,
 }
 
 // 丧尸参数
