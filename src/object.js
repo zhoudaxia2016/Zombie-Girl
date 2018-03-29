@@ -104,6 +104,7 @@ function Character (url, initialSpeed = 0.01, moveDuration = 1.6, fastSpeed = 0.
   this.fastSpeed = fastSpeed
   this.needUpdateRect = true
   this.clock = new THREE.Clock()
+  this.angle = 0
 }
 
 // 计算包围盒
@@ -129,6 +130,7 @@ Character.prototype.move = function () {
   }
   if (shiftAngle) {
     model.rotateY(shiftAngle)
+    this.angle = (this.angle + shiftAngle) % (2*Math.PI)
   }
 }
 
@@ -203,22 +205,22 @@ Character.prototype.boundaryTest = function () {
   if (x > left - tolerance) {
     position.x = left - tolerance
     this.needUpdateRect = true
-    return true
+    return 3*Math.PI / 2
   } else if (x < right + tolerance) {
     position.x = right + tolerance
     this.needUpdateRect = true
-    return true
+    return Math.PI / 2
   }
   if (z > top - tolerance) {
     position.z = top - tolerance
     this.needUpdateRect = true
-    return true
+    return Math.PI
   } else if (z < bottom + tolerance) {
     position.z = bottom + tolerance
     this.needUpdateRect = true
-    return true
+    return 0
   }
-  return false
+  return -1
 }
 
 Character.prototype.update = function () {
@@ -313,15 +315,17 @@ Zombie.prototype.shift = function () {
   }
 }
 
-Zombie.prototype.update = function () {
+Zombie.prototype.update = function (role) {
+  this.forward = true
   this.shift()
+  this.perosonDetect(role.model.position)
   Character.prototype.update.apply(this)
 }
 
 Zombie.prototype.boundaryTest = function () {
-  if (Character.prototype.boundaryTest.apply(this)) {
-    let r = Math.random()
-    this.shiftAngle = Math.PI * (r - 0.5)
+  let angle = Character.prototype.boundaryTest.apply(this)
+  if (angle !==  -1) {
+    this.shiftAngle = angle - this.angle
   }
 }
 
@@ -333,6 +337,22 @@ Zombie.prototype.handleHit = function () {
     this.shiftAngle = -Math.I / 2
   }
   this.move()
+}
+
+Zombie.prototype.perosonDetect = function (position) {
+  let direction = position.clone().sub(this.model.position)
+  let { x, z } = direction
+  let sqrt = Math.sqrt(x**2 + z**2)
+  if (sqrt < 1) {
+    this.forward = false
+  } else {
+    let angle_sin = Math.sin(x / sqrt)
+    let angle = Math.acos(z / sqrt)
+    if (angle_sin < 0 ) {
+      angle = 2*Math.PI - angle
+    }
+    this.shiftAngle = angle - this.angle
+  }
 }
 
 function onError (err) {

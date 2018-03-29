@@ -109,7 +109,7 @@ function animate () {
   hitDetect(qtree)
   role.update()
   for (let zombie of zombies) {
-    zombie.update()
+    zombie.update(role)
   }
 
   render()
