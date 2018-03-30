@@ -32,7 +32,7 @@ QuadTree.prototype.retrieve = function (data, cb, node) {
       if (data.rect) {
         indexs = this.getIndex(data.rect, ax, ay)
       } else {
-        indexs = new Set(new Point(data.x, data.z).getIndex(ax, ay))
+        indexs = new Set([new Point(data.x, data.z).getIndex(ax, ay)])
       }
       if (indexs.size === 0) throw new Error('Object is not in the rect!')
       if (indexs.size === 1) {
@@ -82,7 +82,7 @@ QuadTree.prototype.insert = function (data, node) {
       if (data.rect) {
         indexs = this.getIndex(data.rect, ax, ay)
       } else {
-        indexs = new Set(new Point(data.x, data.z).getIndex(ax, ay))
+        indexs = new Set([new Point(data.x, data.z).getIndex(ax, ay)])
       }
       if (indexs.size === 0) throw new Error('Object is not in the rect!')
       if (indexs.size === 1) {
@@ -219,30 +219,53 @@ function createQuadTree () {
   return qtree
 }
 
-function instanceofCharSurr (o1, o2) {
-  if (o1 instanceof Character) {
-    return o2 instanceof Surroundding ? 1 : 0
-  } else if (o2 instanceof Character) {
-    return o1 instanceof Surroundding ? 2 : 0
+function typeCheck (o1, o2, type1, type2) {
+  if (o1 instanceof type1) {
+    return o2 instanceof type2 ? 1 : 0
+  } else if (o2 instanceof type1) {
+    return o1 instanceof type2 ? 2 : 0
   }
   return 0
 }
 
+function HitPairs () {
+  this.pairs = []
+  this.types = {
+    [HIT_TYPES.CHAR_SURR]: [Character, Surroundding],
+    [HIT_TYPES.ZOMB_SURR]: [Zombie, Surroundding],
+    [HIT_TYPES.BULL_SURR]: [Bullet, Surroundding]
+  }
+}
+
+HitPairs.prototype.push = function (obj1, obj2) {
+  let types = this.types
+  for (let type in types) {
+    let a = typeCheck(obj1, obj2, ...types[type])
+    if (a !== 0 && this.notInclude(obj1, obj2)) {
+      let pair = a === 1 ? [obj1, obj2] : [obj2, obj1]
+      pair.type = type
+      this.pairs.push(pair)
+      return true
+    }
+  }
+  return false
+}
+
+HitPairs.prototype.notInclude = function (obj1, obj2) {
+  let uuid1 = obj1.model.uuid, uuid2 = obj2.model.uuid
+  return this.pairs.findIndex((item) => {
+    let u1 = item[0].model.uuid, u2 = item[1].model.uuid
+    return (u1 === uuid1 && u2 === uuid2) || (u1 === uuid2 && u2 === uuid1)
+  }) === -1
+}
+
 function getHitPairs (dataSet) {
-  let pairs = []
+  let pairs = new HitPairs()
   for (let datas of dataSet) {
     for (let i = 0; i < datas.length - 1; i ++) {
       for (let j = i + 1; j < datas.length; j ++) {
         let obj1 = datas[i].obj, obj2 = datas[j].obj
-        if (instanceofCharSurr(obj1, obj2)) {
-          let uuid1 = obj1.model.uuid, uuid2 = obj2.model.uuid
-          if (pairs.findIndex((item) => {
-            let u1 = item[0].model.uuid, u2 = item[1].model.uuid
-            return (u1 === uuid1 && u2 === uuid2) || (u1 === uuid2 && u2 === uuid1)
-          }) === -1) {
-            pairs.push([obj1, obj2])
-          }
-        }
+        pairs.push(obj1, obj2)
       }
     }
   }
@@ -261,15 +284,23 @@ function hitDetect (qtree) {
   }
   let dataSet = cloneTree.getDatas()
   let hitPairs = getHitPairs(dataSet)
-  for (let pairs of hitPairs) {
-    let obj1 = pairs[0], obj2 = pairs[1]
-    if (rectHitDetect(obj1.rect, obj2.rect)) {
-      let a = instanceofCharSurr(obj1, obj2)
-      if (a === 1) {
-        obj1.handleHit()
-      } else if (a === 2) {
-        obj2.handleHit()
-      }
+  for (let pair of hitPairs.pairs) {
+    let obj1 = pair[0], obj2 = pair[1]
+    switch (pair.type) {
+      case HIT_TYPES.CHAR_SURR:
+      case HIT_TYPES.ZOMB_SURR:
+        if (rectHitDetect(obj1.rect, obj2.rect)) {
+          obj1.handleHit()
+        }
+        break
+      case HIT_TYPES.BULL_SURR:
+        let { x, y, z } = obj1.model.position
+        let { left, right, top, bottom } = obj2.rect
+        let { max, min } = getRange(obj2.model, 'y')
+        if (right < x && x < left && min < y && y < max && bottom < z && z < top) {
+          obj1.handleHit(obj2)
+        }
+        break
     }
   }
 }

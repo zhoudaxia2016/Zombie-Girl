@@ -55,3 +55,9 @@ const ZOMBIE = {
 
 const BOUNDARY_TOLERANCE = 3
 
+const HIT_TYPES = {
+  CHAR_SURR: 'charSurr',
+  ZOMB_SURR: 'zombSurr',
+  BULL_SURR: 'bullSurr',
+}
+

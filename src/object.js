@@ -67,9 +67,7 @@ Surroundding.prototype.updateRect = function () {
 Surroundding.prototype.groundHitDetect = function (land) {
   let fqt = land.fqt
   let model = this.model
-  let geometryHelper = new THREE.BoxHelper(model).geometry
-  geometryHelper.computeBoundingBox()
-  let box = geometryHelper.boundingBox
+  let rangeY = getRange(model, 'y')
   let planes = []
   let { x, z } = model.position
   fqt.retrieve({ obj: this.model, rect: this.rect }, function (datas) {
@@ -84,12 +82,12 @@ Surroundding.prototype.groundHitDetect = function (land) {
       return new THREE.Mesh(geo, mat)
     }).filter(item => item))
   })
-  let y = box.max.y
+  let y = rangeY.max
   let pos = new THREE.Vector3(x, y, z)
   let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
   let results = ray.intersectObjects(planes)
   if (results.length > 0) {
-    model.position.set(x, y - results[0].distance - box.min.y + model.position.y, z)
+    model.position.set(x, y - results[0].distance - rangeY.min + model.position.y, z)
   }
 }
 
@@ -138,9 +136,7 @@ Character.prototype.move = function () {
 Character.prototype.groundHitDetect = function (land) {
   let fqt = land.fqt
   let model = this.model
-  let geometryHelper = new THREE.BoxHelper(model).geometry
-  geometryHelper.computeBoundingBox()
-  let box = geometryHelper.boundingBox
+  let rangeY = getRange(model, 'y')
   let planes = []
   let { x, z } = model.position
   fqt.retrieve({ obj: this.model, rect: this.rect }, function (datas) {
@@ -155,12 +151,12 @@ Character.prototype.groundHitDetect = function (land) {
       return new THREE.Mesh(geo, mat)
     }).filter(item => item))
   })
-  let y = box.max.y
+  let y = rangeY.max
   let pos = new THREE.Vector3(x, y, z)
   let ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0))
   let results = ray.intersectObjects(planes)
   if (results.length > 0) {
-    model.translateY(box.max.y - box.min.y - results[0].distance)
+    model.translateY(rangeY.max - rangeY.min - results[0].distance)
   }
 }
 
@@ -175,10 +171,7 @@ Character.prototype.load = function () {
     mesh.castShadow = true
     scene.add(mesh)
 
-    let geometryHelper = new THREE.BoxHelper(this.model).geometry
-    geometryHelper.computeBoundingBox()
-    let box = geometryHelper.boundingBox
-    this.y = box.min.y
+    this.y = getRange(this.model, 'y').min
 
     this.model = mesh
     this.updateRect()
@@ -469,6 +462,34 @@ function Bullet (url, person, speed = 1) {
 
 Bullet.prototype.move = function () {
   this.model.translateZ(this.speed)
+}
+
+Bullet.prototype.update = function () {
+  this.move()
+  this.boundaryTest()
+}
+
+Bullet.prototype.boundaryTest = function () {
+  let tolerance = 100
+  let { left, right, bottom, top } = land.rect
+  let { x, y, z } = this.model.position
+  if (x > left + tolerance || x < right - tolerance || z > top + tolerance || z < bottom - tolerance) {
+    this.clear()
+  }
+  if (y < -10) {
+    this.clear()
+  }
+}
+
+Bullet.prototype.clear = function () {
+  scene.remove(this.model)
+  bullets.splice(bullets.indexOf(this), 1)
+}
+
+Bullet.prototype.handleHit = function (obj2) {
+  if (obj2 instanceof Surroundding) {
+    this.clear()
+  }
 }
 
 Bullet.prototype.load = function () {
