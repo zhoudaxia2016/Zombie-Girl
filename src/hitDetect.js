@@ -78,6 +78,7 @@ QuadTree.prototype.insert = function (data, node) {
       let ax = (left + right) / 2
       let ay = (top + bottom) / 2
       let indexs
+      // data有无rect属性可以判断它是有体积的还是只是一个点
       if (data.rect) {
         indexs = this.getIndex(data.rect, ax, ay)
       } else {
@@ -253,6 +254,10 @@ function hitDetect (qtree) {
   cloneTree.insert({ obj: role, rect: role.rect })
   for (let zombie of zombies) {
     cloneTree.insert({ obj: zombie, rect: zombie.rect })
+  }
+  for (let bullet of bullets) {
+    let { x, z } = bullet.model.position
+    cloneTree.insert({ obj: bullet, x, z })
   }
   let dataSet = cloneTree.getDatas()
   let hitPairs = getHitPairs(dataSet)

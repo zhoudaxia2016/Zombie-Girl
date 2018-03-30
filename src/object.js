@@ -280,36 +280,89 @@ function Person (url, speed, moveDuration, fastSpeed) {
       case 32:
         this.shooting = true
         break
+      case 69:
+        this.aimReady = !this.aimReady
+        break
+    }
+  })
+  document.addEventListener('mousemove', (e) => {
+    if (this.aiming) {
+      let range = this.vision.aimingRange
+      let origin = this.vision.aimingLookAt
+      let x = 0.5 * range.x - range.x * e.clientX / window.innerWidth
+      let y = 0.5 * range.y - range.y * e.clientY / window.innerHeight
+      let currentLookAt = [origin[0] + x, origin[1] + y, origin[2]]
+      this.camera.lookAt(...currentLookAt)
+      this.vision.currentLookAt = currentLookAt
     }
   })
 }
 
 Person.prototype = new Character()
 
+Person.prototype.liftUpGun = function () {
+  let action = this.action.shoot
+  this.mixer.update(this.clock.getDelta())
+  action.play()
+  return action.paused
+}
+
+
 Person.prototype.update = function () {
+  // 按了射击准备键
   if (this.shootingReady) {
-    let action = this.action.shoot
-    this.mixer.update(this.clock.getDelta())
-    action.play()
-    if (this.shooting && action.paused) {
-      let bullet = new Bullet(FILES.BULLET, this.model.position, this.angle)
-      bullet.load()
-      this.shooting = false
-    } else {
-      this.shooting = false
+    // 已经抬起枪
+    if (this.liftUpGun()) {
+      // 按了射击键
+      if (this.shooting) {
+        let { aimingPosition, aimingLookAt } = this.vision
+        let bullet = new Bullet(FILES.BULLET, this)
+        bullet.load()
+      }
+      // 按了瞄准键
+      if (this.aimReady) {
+        if (!this.aiming) {
+          this.aiming = true
+          let { aimingPosition, aimingLookAt } = this.vision
+          this.camera.position.set(...aimingPosition)
+          this.camera.lookAt(...aimingLookAt)
+          this.vision.currentLookAt = aimingLookAt
+        }
+      } else {
+        this.aiming = false
+        let { position, lookAt } = this.vision
+        this.camera.position.set(...position)
+        this.camera.lookAt(...lookAt)
+      }
     }
+  // 没有射击准备
   } else {
-    this.shooting = false
     this.action.shoot.stop()
+    let { position, lookAt } = this.vision
+    this.camera.position.set(...position)
+    this.camera.lookAt(...lookAt)
+    this.aimReady = false
+    this.aiming = false
     Character.prototype.update.apply(this)
   }
+  // 无论任何情况，射击总是一次性的
+  this.shooting = false
 }
 
 
 Person.prototype.setCamera = function (camera) {
+  this.camera = camera
+  let vision = {
+    position: [0, 2, -2],
+    lookAt: [0, 1, 1],
+    aimingRange: { x: 8, y: 5 },
+    aimingPosition: [0, 2, 2],
+    aimingLookAt: [0, 2, 10]
+  }
   this.model.add(camera)
-  camera.position.set(0, 2, -2)
-  camera.lookAt(0, 1, 1)
+  camera.position.set(...vision.position)
+  camera.lookAt(...vision.lookAt)
+  this.vision = vision
   camera.add(this.listener)
 }
 
@@ -393,23 +446,56 @@ function onError (err) {
   console.log(err)
 }
 
-function Bullet (url, position, angle, speed = 2) {
-  this.position = position
-  this.angle = angle
+function Bullet (url, person, speed = 1) {
+  let { angle, vision } = person
+  let [xp, yp, zp] = vision.aimingPosition
+  let [xl, yl, zl] = vision.aimingLookAt
+  let distanceFromCamera = 1
+  let position = new THREE.Vector3(xp, yp - distanceFromCamera, zp)
+  if (person.aiming) {
+    let [xc, yc, zc] = person.vision.currentLookAt
+    this.verticalAngle = getAngle(position.y -yc, zp - zl)
+    console.log(this.verticalAngle)
+    this.horizontalAngle = (angle + getAngle(xc -xp, zp - zl)) % (2*Math.PI)
+  } else {
+    this.verticalAngle = getAngle(yl - position.y, zp - zl)
+    this.horizontalAngle = angle
+  }
+  this.position = person.model.localToWorld(position)
   this.url = url
   this.speed = speed
+  this.listener = person.listener
+}
+
+Bullet.prototype.move = function () {
+  this.model.translateZ(this.speed)
 }
 
 Bullet.prototype.load = function () {
-  let promise = newLoadPromise(this.url, THREE.JSONLoader)
-  promise.then(([geometry, materials]) => {
+  let modelPromise = newLoadPromise(this.url, THREE.JSONLoader)
+  modelPromise.then(([geometry, materials]) => {
     let mesh = new THREE.Mesh(geometry, materials)
     mesh.castShadow = true
-    let { x, y, z } = this.position
+    let {x, y, z} = this.position
     mesh.position.set(x, y, z)
-    mesh.translateY(1)
-    mesh.translateZ(1)
-    mesh.rotateY(this.angle)
+    mesh.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), this.verticalAngle)
+    mesh.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), this.horizontalAngle)
     scene.add(mesh)
+
+    this.model = mesh
+    bullets.push(this)
+  })
+
+  let soundPromise = newLoadPromise(FILES.HANDGUN_SOUND, THREE.AudioLoader)
+  soundPromise.then(buffer => {
+    let sound = new THREE.Audio(this.listener)
+    sound.setBuffer(buffer)
+    sound.setLoop(false)
+    sound.setVolume(0.2)
+    this.sound = sound
+  })
+
+  Promise.all([modelPromise, soundPromise]).then( () => {
+    this.sound.play()
   })
 }

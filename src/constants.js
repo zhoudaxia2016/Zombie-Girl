@@ -8,8 +8,9 @@ const FILES = {
   SURROUNDDING: MODEL_DIR + 'land.json',
   ROLE: MODEL_DIR + 'boyWithGun.json',
   ZOMBIE: MODEL_DIR + 'girlZombie.json',
-  BULLET: MODEL_DIR + 'bullet.json',
   ZOMBIE_SOUND: AUDIO_DIR + 'zombieSound4.mp3',
+  HANDGUN_SOUND: AUDIO_DIR + 'handgun.mp3',
+  BULLET: MODEL_DIR + 'bullet.json',
   SKY_IMAGES: [
     IMAGE_DIR + 'skyposx.jpg',
     IMAGE_DIR + 'skynegx.jpg',
@@ -36,6 +37,8 @@ const ROLE = {
   MOVE_DURATION: 1.6,
   FAST_SPEED: 0.04,
   SHIFT_ANGLE: Math.PI / 100,
+  CAMERA_POSITION: [0, 2, -2],
+  CAMERA_LOOKAT: [0, 1, 1],
 }
 
 // 丧尸参数
