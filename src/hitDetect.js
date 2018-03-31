@@ -234,7 +234,8 @@ function HitPairs () {
     [HIT_TYPES.CHAR_SURR]: [Character, Surroundding],
     [HIT_TYPES.ZOMB_SURR]: [Zombie, Surroundding],
     [HIT_TYPES.BULL_SURR]: [Bullet, Surroundding],
-    [HIT_TYPES.BULL_ZOMB]: [Bullet, Zombie]
+    [HIT_TYPES.BULL_ZOMB]: [Bullet, Zombie],
+    [HIT_TYPES.PERS_ZOMB]: [Person, Zombie],
   }
 }
 
@@ -290,6 +291,7 @@ function hitDetect (qtree) {
     switch (pair.type) {
       case HIT_TYPES.CHAR_SURR:
       case HIT_TYPES.ZOMB_SURR:
+      case HIT_TYPES.PERS_ZOMB:
         if (rectHitDetect(obj1.rect, obj2.rect)) {
           obj1.handleHit()
         }

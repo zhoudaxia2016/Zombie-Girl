@@ -103,7 +103,7 @@ function Character (url, initialSpeed = 0.01, moveDuration = 1.6, fastSpeed = 0.
   this.needUpdateRect = true
   this.clock = new THREE.Clock()
   this.angle = 0
-  this.hp = 10
+  this.hp = 100
 }
 
 // 计算包围盒
@@ -178,20 +178,24 @@ Character.prototype.load = function () {
     this.updateRect()
     let mixer = new THREE.AnimationMixer(mesh)
     let walkAction = mixer.clipAction('walk')
-    walkAction.setDuration(this.moveDuration)
     let shootAction = mixer.clipAction('shoot')
+    let dieAction = mixer.clipAction('die')
+    let attackAction = mixer.clipAction('attack')
+    walkAction.setDuration(this.moveDuration)
     if (shootAction) {
       shootAction.setDuration(1)
       shootAction.setLoop(THREE.LoopOnce)
       shootAction.clampWhenFinished = true
     }
-    let dieAction = mixer.clipAction('die')
     if (dieAction) {
       dieAction.setDuration(3)
       dieAction.setLoop(THREE.LoopOnce)
       dieAction.clampWhenFinished = true
     }
-    this.action = { walk: walkAction, shoot: shootAction, die: dieAction }
+    if (attackAction) {
+      attackAction.setDuration(2)
+    }
+    this.action = { walk: walkAction, shoot: shootAction, die: dieAction, attack: attackAction }
     this.mixer = mixer
   }, onError)
   return promise
@@ -265,7 +269,8 @@ Character.prototype.die = function () {
 function Person (url, speed, moveDuration, fastSpeed) {
   Character.apply(this, [url, speed, moveDuration, fastSpeed])
   this.listener = new THREE.AudioListener()
-  document.addEventListener('keydown', (e) => {
+  let events = []
+  let onKeyDown = (e) => {
     switch (e.keyCode) {
       case 87:
         this.forward = true
@@ -280,8 +285,8 @@ function Person (url, speed, moveDuration, fastSpeed) {
         this.speed = this.fastSpeed
         break
     }
-  })
-  document.addEventListener('keyup', (e) => {
+  }
+  let onKeyUp = (e) => {
     switch (e.keyCode) {
       case 87:
         this.forward = false
@@ -303,8 +308,8 @@ function Person (url, speed, moveDuration, fastSpeed) {
         this.aimReady = !this.aimReady
         break
     }
-  })
-  document.addEventListener('mousemove', (e) => {
+  }
+  let onMouseMove = (e) => {
     if (this.aiming) {
       let range = this.vision.aimingRange
       let origin = this.vision.aimingLookAt
@@ -314,7 +319,17 @@ function Person (url, speed, moveDuration, fastSpeed) {
       this.camera.lookAt(...currentLookAt)
       this.vision.currentLookAt = currentLookAt
     }
-  })
+  }
+
+  document.addEventListener('keydown', onKeyDown, false)
+  document.addEventListener('keyup', onKeyUp, false)
+  document.addEventListener('mousemove', onMouseMove, false)
+
+  events.push({ bindFunc: onKeyDown, eventType: 'keydown' })
+  events.push({ bindFunc: onKeyUp, eventType: 'keyup' })
+  events.push({ bindFunc: onMouseMove, eventType: 'mousemove' })
+
+  this.events = events
 }
 
 Person.prototype = new Character()
@@ -328,6 +343,12 @@ Person.prototype.liftUpGun = function () {
 
 
 Person.prototype.update = function () {
+  if (this.dead) {
+    if (this.action.die.paused) {
+      return
+    }
+    this.die()
+  }
   // 按了射击准备键
   if (this.shootingReady) {
     // 已经抬起枪
@@ -385,6 +406,17 @@ Person.prototype.setCamera = function (camera) {
   camera.add(this.listener)
 }
 
+Person.prototype.die = function () {
+  Character.prototype.die.apply(this)
+  let { action, vision, events } = this
+  action.shoot.stop()
+  this.camera.position.set(...vision.position)
+  this.camera.lookAt(...vision.lookAt)
+  for (let event of events) {
+    document.removeEventListener(event.eventType, event.bindFunc)
+  }
+}
+
 function Zombie (url, speed = ZOMBIE.INITIAL_SPEED, moveDuration = ZOMBIE.MOVE_DURATION) {
   Character.apply(this, [url, speed, moveDuration])
   this.forward = true
@@ -394,6 +426,7 @@ Zombie.prototype = new Character()
 
 Zombie.prototype.die = function () {
   Character.prototype.die.apply(this)
+  this.sound.stop()
   if (this.action.die.paused) {
     zombies.splice(zombies.indexOf(this), 1)
   }
@@ -405,6 +438,7 @@ Zombie.prototype.load = function (listener, audioUrl) {
     let sound = new THREE.PositionalAudio(listener)
     sound.setVolume(0)
     this.model.add(sound)
+    this.sound= sound
     let audioLoader = new THREE.AudioLoader();
     audioLoader.load(audioUrl, (buffer) => {
       sound.setBuffer(buffer)
@@ -431,7 +465,7 @@ Zombie.prototype.shift = function () {
 Zombie.prototype.update = function (role) {
   this.forward = true
   this.shift()
-  this.perosonDetect(role.model.position)
+  this.perosonDetect(role)
   Character.prototype.update.apply(this)
 }
 
@@ -452,13 +486,15 @@ Zombie.prototype.handleHit = function () {
   this.move()
 }
 
-Zombie.prototype.perosonDetect = function (position) {
-  let direction = position.clone().sub(this.model.position)
+Zombie.prototype.perosonDetect = function (role) {
+  let direction = role.model.position.clone().sub(this.model.position)
   let { x, z } = direction
   let sqrt = Math.sqrt(x**2 + z**2)
-  if (sqrt < 1) {
+  if (sqrt < ZOMBIE.ATTACK_DISTANCE) {
     this.forward = false
-  } else if (sqrt < 10) {
+    this.attack(role)
+    return
+  } else if (sqrt < ZOMBIE.DETECT_DISTANCE) {
     let angle_sin = Math.sin(x / sqrt)
     let angle = Math.acos(z / sqrt)
     if (angle_sin < 0 ) {
@@ -466,6 +502,14 @@ Zombie.prototype.perosonDetect = function (position) {
     }
     this.shiftAngle = angle - this.angle
   }
+  this.action.attack.stop()
+}
+
+Zombie.prototype.attack = function () {
+  role.hurt(10)
+  let { mixer, action, clock } = this
+  mixer.update(clock.getDelta())
+  action.attack.play()
 }
 
 function onError (err) {

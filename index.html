@@ -107,26 +107,25 @@ function init () {
 function animate () {
   requestAnimationFrame(animate)
 
-  /*
   if (!fall.surroundding_fall) {
     fall(land, surrounddings)
     fall.surroundding_fall = true
   }
-  */
 
   if (!fall.zombie_fall) {
     fall(land, zombies)
     fall.zombie_fall = true
   }
 
-  hitDetect(qtree)
   role.update()
   for (let zombie of zombies) {
     zombie.update(role)
   }
   for (let bullet of bullets) {
     bullet.update()
+
   }
+  hitDetect(qtree)
 
   render()
   stats.update()

@@ -6,7 +6,7 @@ const IMAGE_DIR = ASSETS_DIR + 'images/'
 
 const FILES = {
   SURROUNDDING: MODEL_DIR + 'land.json',
-  ROLE: MODEL_DIR + 'boyWithGun.json',
+  ROLE: MODEL_DIR + 'dieAction.json',
   ZOMBIE: MODEL_DIR + 'girlZombie.json',
   ZOMBIE_SOUND: AUDIO_DIR + 'zombieSound4.mp3',
   HANDGUN_SOUND: AUDIO_DIR + 'handgun.mp3',
@@ -51,6 +51,8 @@ const ZOMBIE = {
   },
   INITIAL_SPEED: 0.02,
   MOVE_DURATION: 1,
+  ATTACK_DISTANCE: 1.5,
+  DETECT_DISTANCE: 15
 }
 
 const BOUNDARY_TOLERANCE = 3
@@ -60,5 +62,6 @@ const HIT_TYPES = {
   ZOMB_SURR: 'zombSurr',
   BULL_SURR: 'bullSurr',
   BULL_ZOMB: 'bullZomb',
+  PERS_ZOMB: 'persZomb',
 }
 
