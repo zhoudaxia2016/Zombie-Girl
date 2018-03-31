@@ -2,24 +2,11 @@
   <head>
     <meta charset="utf-8">
     <title>Threejs and Blender Game Design</title>
-    <style>
-      * { margin: 0 }
-      canvas { width: 100%; height: 100% }
-
-      .front-sight {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        width: 50px;
-        height: 50px;
-        border: 2px solid #aaf;
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-      }
-    </style>
+    <link rel="stylesheet" type="text/css" href="styles/index.css">
     <script src="https://cdn.bootcss.com/three.js/90/three.js"></script>
     <script src="https://cdn.bootcss.com/stats.js/r17/Stats.js"></script>
-    <script src="src/lib/Sky.js"></script>
+    <script src="src/lib/FlyControls.js"></script>
+    <script src="src/lib/OrbitControls.js"></script>
     <script src="src/constants.js"></script>
     <script src="src/utils.js"></script>
     <script src="src/skybox.js"></script>
@@ -28,15 +15,147 @@
   </head>
 
   <body>
-    <div class="front-sight"></div>
+    <div class="front-sight center"></div>
+    <a class="source" href="https://github.com/zhoudaxia2016/threejs-game">source</a>
+    <div class="hints">
+      <h1> Hints </h1>
+      <div class="main">
+        <div class="control">
+          <div class="play-btn" id="play">Play</div>
+          <div class="play-btn" id="replay">Replay</div>
+        </div>
+        <div class="item">
+          <h2><a href="#game-intro">How to play?</a></h2>
+          <ul class="target" id="game-intro">
+            <li>
+              <h3>Name</h3>
+              <div class="content">Zombie Girl</div>
+            </li>
+            <li>
+              <h3>Game background</h3>
+              <div class="content">The grils in this forest has turned into zombies. Your task is to kill all the zombie girls.</div>
+            </li>
+            <li>
+              <h3>Game keys</h3>
+              <div class="content rule">
+                <p><span class="key">W.</span> Move forward</p>
+                <p><span class="key">A.</span> Turn left</p>
+                <p><span class="key">D.</span> Turn right</p>
+                <p><span class="key">Shift.</span> Speed up</p>
+                <p><span class="key">Q.</span> Lift up the gun</p>
+                <p><span class="key">E.</span> Aiming</p>
+                <p><span class="key">Space.</span> Shooting</p>
+                <p><span class="key">Mouse.</span> Move gun star when aiming</p>
+              </div>
+            </li>
+            <li>
+              <h3>Game goal</h3>
+              <div class="content">Find the zombie girls and kill them and prevent being killed.</div>
+            </li>
+          </ul>
+        </div>
+        <div class="item">
+          <h2><a href="#watch-scene">Want to watch the whole scene?</a></h2>
+          <ul class="target" id="watch-scene">
+            <li id="oribit-controls">
+              <h3>Oribit Controls</h3>
+              <div class="content">
+                <span class="key">Left Mouse</span> for rotating view, <span class="key">Middle Mouse</span> for zooming view, <span class="key">Right Mouse</span> for moving view
+              </div>
+            </li>
+            <li id="fly-controls">
+              <h3>Fly Controls</h3>
+              <div class="content">
+                <span class="key">W and Left Mouse</span> for moving forward, <span class="key">A.</span> for moving left, <span class="key">D.</span> for moving right, <span class="key">S and Right Mouse</span> for moving backward, <span class="key">R.</span> for moving up, <span class="key">F.</span> for moving down
+              </div>
+            </li>
+            </li>
+          </ul>
+        </div>
+    </div>
     <script>
 let scene, renderer, camera, container
 let qtree
 let bullets = []
+let controls, clock = new THREE.Clock()
+let state = {
+  animating: false,
+  playing: true
+}
 
 // Show fps
 let stats = new Stats()
 document.body.appendChild(stats.dom)
+
+let hints = document.getElementsByClassName('hints')[0]
+let canvas = document.getElementsByTagName('canvas')[0]
+
+hints.addEventListener('click', function (e) {
+  state.animating = false
+  growHint()
+})
+
+document.getElementById('play').addEventListener('click', function (e) {
+  state.animating = true
+  state.playing = true
+  shrinkHint()
+  e.stopPropagation()
+})
+
+document.getElementById('replay').addEventListener('click', function (e) {
+  state.animating = true
+  state.playing = true
+  replay()
+  shrinkHint()
+  e.stopPropagation()
+})
+
+let controls_types = [
+  {
+    name: 'oribit-controls',
+    controls: THREE.OrbitControls
+  }, {
+    name: 'fly-controls',
+    controls: THREE.FlyControls
+  }
+]
+
+for (let item of controls_types) {
+  document.getElementById(item.name).addEventListener('click', function (e) {
+    if (renderer && camera) {
+      if (item.name === 'fly-controls') {
+        controls = new item.controls(camera)
+      } else {
+        controls = new item.controls(camera, renderer.domElement)
+      }
+      state.animating = true
+      state.playing = false
+      shrinkHint()
+    }
+    e.stopPropagation()
+  })
+}
+
+
+function growHint () {
+  hints.style.width = '500px'
+  hints.style.height = '80%'
+  hints.style.right = '50%'
+  hints.style.top = '10%'
+  hints.style.transform = 'translateX(50%)'
+  hints.style.overflow = 'scroll'
+  hints.scrollTop = 0
+}
+
+function shrinkHint () {
+  hints.style.width = '100px'
+  hints.style.height = '30px'
+  hints.style.right = '0'
+  hints.style.top = '0'
+  hints.style.transform = 'translateX(0)'
+  hints.style.overflow = 'hidden'
+  hints.scrollTop = 0
+}
 
 init()
 
@@ -44,12 +163,13 @@ init()
 let role = new Person(FILES.ROLE, ROLE.INITIAL_SPEED, ROLE.MOVE_DURATION, ROLE.FAST_SPEED)
 let roleLoadPromise = role.load()
 
-let zombies = []
+let zombies = [], zombies_all = []
 let zombieLoadPromises = []
 for (let i = 0; i <  1; i ++) {
   let zombie = new Zombie(FILES.ZOMBIE)
   let promise = zombie.load(role.listener, FILES.ZOMBIE_SOUND)
   zombies.push(zombie)
+  zombies_all.push(zombie)
   zombieLoadPromises.push(promise)
 }
 
@@ -71,6 +191,7 @@ loadPromise.then(function () {
 
   let model = land.model
   land.vertices = model.geometry.vertices.map(item => item.clone().applyMatrix4(model.matrixWorld))
+  render()
   animate()
 })
 
@@ -107,6 +228,27 @@ function init () {
 function animate () {
   requestAnimationFrame(animate)
 
+  // 不需要渲染，直接return
+  if (!state.animating) return
+
+  // 正在游戏
+  if (state.playing) {
+    update()
+  // 正在查看scene
+  } else {
+    controls.update(clock.getDelta())
+  }
+
+  render()
+  stats.update()
+}
+
+function render () {
+  renderer.render(scene, camera)
+}
+
+// 刷新游戏状态
+function update () {
   if (!fall.surroundding_fall) {
     fall(land, surrounddings)
     fall.surroundding_fall = true
@@ -123,23 +265,24 @@ function animate () {
   }
   for (let bullet of bullets) {
     bullet.update()
-
   }
   hitDetect(qtree)
-
-  render()
-  stats.update()
 }
 
-function render() {
-  renderer.render(scene, camera)
-}
-
-function onWindowResize() {
+function onWindowResize () {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize( window.innerWidth, window.innerHeight )
   render()
+}
+
+function replay () {
+  role.revive()
+  zombies = []
+  for (let zombie of zombies_all) {
+    zombie.revive()
+    zombies.push(zombie)
+  }
 }
     </script>
   </body>

@@ -1,0 +1,163 @@
+* { margin: 0 }
+
+canvas {
+ width: 100%;
+ height: 100%
+}
+
+.center {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.front-sight {
+  width: 50px;
+  height: 50px;
+  border: 2px solid #aaf;
+  border-radius: 50%;
+}
+
+a:link,
+a:visited,
+a:hover,
+a:active {
+  color: #234;
+  text-decoration: none;
+}
+
+.hints {
+  position: absolute;
+  right: 50%;
+  top: 10%;
+  padding: 20px;
+  width: 500px;
+  max-height: 80%;
+  background: #90ccc2;
+  border-radius: 10px;
+  transform: translateX(50%);
+  overflow: scroll;
+  transition: all 1s;
+}
+
+.hints::-webkit-scrollbar {
+  display: none;
+}
+
+.hints h1 {
+  margin-bottom: 20px;
+  color: #123;
+  text-align: center;
+}
+
+.main .item {
+  margin: 10px 0;
+}
+
+.content .item {
+  margin-bottom: 5px;
+  padding: 0 10px;
+  color: #234;
+  list-style: none;
+  cursor: pointer;
+}
+
+.target {
+  padding-left: 20px;
+  height: 0;
+  opacity: 0;
+  transition: all .5s;
+  overflow: hidden;
+}
+
+.target:target {
+  opacity: 1;
+}
+
+#game-intro:target {
+  height: 400px;
+}
+
+#watch-scene:target {
+  height: 230px;
+}
+
+.target li {
+  list-style: none;
+}
+
+.target li>* {
+  font-size: 20px;
+  line-height: 30px;
+}
+
+.target h3 {
+  position: relative;
+  color: #334;
+}
+
+.target h3::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  width: 4px;
+  height: 70%;
+  background: #334;
+  transform: translateY(-50%);
+}
+
+
+.target>li {
+  margin: 10px 0;
+}
+
+.target .content {
+  color: #446;
+  text-indent: 15px;
+}
+
+.rule p {
+  display: inline;
+  margin-right: 20px;
+}
+
+.key {
+  font-weight: bold;
+}
+
+.control {
+  display: flex;
+  justify-content: space-around;
+}
+
+.play-btn {
+  width: 80px;
+  height: 40px;
+  font-size: 20px;
+  line-height: 40px;
+  color: #fff;
+  text-align: center;
+  background: #ff6774;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#watch-scene li {
+  cursor: pointer;
+}
+
+.source {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 70px;
+  height: 30px;
+  color: #eee;
+  line-height: 30px;
+  text-align: center;
+  background: #ff6774;
+  opacity: 0.6;
+}
+

@@ -208,6 +208,13 @@ Character.prototype.retreat = function (z) {
   this.needUpdateRect = true
 }
 
+// 复活
+Character.prototype.revive  = function () {
+  this.hp = 100
+  this.dead = false
+  this.action.die.stop()
+}
+
 // 边界检测
 Character.prototype.boundaryTest = function () {
   let { left, right, top, bottom } = land.rect
@@ -410,11 +417,22 @@ Person.prototype.die = function () {
   Character.prototype.die.apply(this)
   let { action, vision, events } = this
   action.shoot.stop()
+  action.walk.stop()
   this.camera.position.set(...vision.position)
   this.camera.lookAt(...vision.lookAt)
   for (let event of events) {
     document.removeEventListener(event.eventType, event.bindFunc)
   }
+}
+
+// 复活
+Person.prototype.revive = function () {
+  let { model, events } = this
+  model.position.set(0, 0, 0)
+  for (let event of events) {
+    document.addEventListener(event.eventType, event.bindFunc)
+  }
+  Character.prototype.revive.apply(this)
 }
 
 function Zombie (url, speed = ZOMBIE.INITIAL_SPEED, moveDuration = ZOMBIE.MOVE_DURATION) {
@@ -486,6 +504,12 @@ Zombie.prototype.handleHit = function () {
   this.move()
 }
 
+// 复活
+Zombie.prototype.revive = function () {
+  this.sound.play()
+  Character.prototype.revive.apply(this)
+}
+
 Zombie.prototype.perosonDetect = function (role) {
   let direction = role.model.position.clone().sub(this.model.position)
   let { x, z } = direction
@@ -506,7 +530,7 @@ Zombie.prototype.perosonDetect = function (role) {
 }
 
 Zombie.prototype.attack = function () {
-  role.hurt(10)
+  role.hurt(1)
   let { mixer, action, clock } = this
   mixer.update(clock.getDelta())
   action.attack.play()
@@ -592,7 +616,7 @@ Bullet.prototype.load = function () {
     let sound = new THREE.Audio(this.listener)
     sound.setBuffer(buffer)
     sound.setLoop(false)
-    sound.setVolume(0.2)
+    sound.setVolume(0.1)
     this.sound = sound
   })
 
