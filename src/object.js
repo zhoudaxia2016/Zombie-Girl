@@ -103,6 +103,7 @@ function Character (url, initialSpeed = 0.01, moveDuration = 1.6, fastSpeed = 0.
   this.needUpdateRect = true
   this.clock = new THREE.Clock()
   this.angle = 0
+  this.hp = 10
 }
 
 // 计算包围盒
@@ -184,7 +185,13 @@ Character.prototype.load = function () {
       shootAction.setLoop(THREE.LoopOnce)
       shootAction.clampWhenFinished = true
     }
-    this.action = { walk: walkAction, shoot: shootAction }
+    let dieAction = mixer.clipAction('die')
+    if (dieAction) {
+      dieAction.setDuration(3)
+      dieAction.setLoop(THREE.LoopOnce)
+      dieAction.clampWhenFinished = true
+    }
+    this.action = { walk: walkAction, shoot: shootAction, die: dieAction }
     this.mixer = mixer
   }, onError)
   return promise
@@ -225,14 +232,33 @@ Character.prototype.boundaryTest = function () {
 }
 
 Character.prototype.update = function () {
-  this.updateRect()
-  this.boundaryTest()
-  this.move()
-  this.groundHitDetect(land)
+  if (this.dead) {
+    this.die()
+  } else {
+    this.updateRect()
+    this.boundaryTest()
+    this.move()
+    this.groundHitDetect(land)
+  }
 }
 
 Character.prototype.handleHit = function () {
   this.retreat()
+}
+
+Character.prototype.hurt = function (damage) {
+  this.hp = this.hp - damage
+  console.log('hurt', this.hp)
+  if (this.hp <= 0) {
+    this.dead = true
+    this.die()
+  }
+}
+
+Character.prototype.die = function () {
+  let { action, mixer } = this
+  mixer.update(this.clock.getDelta())
+  action.die.play()
 }
 
 // 控制角色
@@ -349,7 +375,7 @@ Person.prototype.setCamera = function (camera) {
     position: [0, 2, -2],
     lookAt: [0, 1, 1],
     aimingRange: { x: 8, y: 5 },
-    aimingPosition: [0, 2, 2],
+    aimingPosition: [0, 2, 0.5],
     aimingLookAt: [0, 2, 10]
   }
   this.model.add(camera)
@@ -365,6 +391,13 @@ function Zombie (url, speed = ZOMBIE.INITIAL_SPEED, moveDuration = ZOMBIE.MOVE_D
 }
 
 Zombie.prototype = new Character()
+
+Zombie.prototype.die = function () {
+  Character.prototype.die.apply(this)
+  if (this.action.die.paused) {
+    zombies.splice(zombies.indexOf(this), 1)
+  }
+}
 
 Zombie.prototype.load = function (listener, audioUrl) {
   let promise = Character.prototype.load.apply(this)
@@ -486,9 +519,12 @@ Bullet.prototype.clear = function () {
   bullets.splice(bullets.indexOf(this), 1)
 }
 
-Bullet.prototype.handleHit = function (obj2) {
-  if (obj2 instanceof Surroundding) {
+Bullet.prototype.handleHit = function (obj) {
+  if (obj instanceof Surroundding) {
     this.clear()
+  } else if (obj instanceof Zombie) {
+    this.clear()
+    obj.hurt(10)
   }
 }
 

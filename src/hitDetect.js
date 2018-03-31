@@ -233,7 +233,8 @@ function HitPairs () {
   this.types = {
     [HIT_TYPES.CHAR_SURR]: [Character, Surroundding],
     [HIT_TYPES.ZOMB_SURR]: [Zombie, Surroundding],
-    [HIT_TYPES.BULL_SURR]: [Bullet, Surroundding]
+    [HIT_TYPES.BULL_SURR]: [Bullet, Surroundding],
+    [HIT_TYPES.BULL_ZOMB]: [Bullet, Zombie]
   }
 }
 
@@ -294,6 +295,7 @@ function hitDetect (qtree) {
         }
         break
       case HIT_TYPES.BULL_SURR:
+      case HIT_TYPES.BULL_ZOMB:
         let { x, y, z } = obj1.model.position
         let { left, right, top, bottom } = obj2.rect
         let { max, min } = getRange(obj2.model, 'y')

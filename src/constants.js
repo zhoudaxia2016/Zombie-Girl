@@ -59,5 +59,6 @@ const HIT_TYPES = {
   CHAR_SURR: 'charSurr',
   ZOMB_SURR: 'zombSurr',
   BULL_SURR: 'bullSurr',
+  BULL_ZOMB: 'bullZomb',
 }
 
