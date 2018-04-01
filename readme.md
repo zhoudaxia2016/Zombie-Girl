@@ -1,6 +1,6 @@
 # Zombie Girl
 
-## [page](https://zhoudaxia2016.github.io/threejs-game/)
+## [page](https://zhoudaxia2016.github.io/Zombie-Girl/)
 
 ## Game Intro
 
