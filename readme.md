@@ -1,13 +1,42 @@
 # Graduation Project
 
-## Use threejs and blender to make a shooting game
-
-## [code](https://github.com/zhoudaxia2016/threejs-game)
+---
 
 ## [page](https://zhoudaxia2016.github.io/threejs-game/)
 
-## Rule of the game
+---
 
-1. W, A, D key for moving
+## Game Intro
 
-2. Find all zombies and use gun to kill them
+### Name
+
+  Zombie Girl
+
+### Keys
+
+1. W, A, D key for moving; Shift for speeding up
+
+2. Q for shooting ready; E for aiming; Space for shooting
+
+3. Mouse for moving gun star when aiming
+
+### Goal
+
+Find the zombie girls and kill them and prevent being killed
+
+---
+
+## Tools
+
+### Blender
+
+> Blender is a free and open source 3D creation suite.You can make models and animations with it.
+
+> [official site](https://www.blender.org/)
+
+### Threejs
+
+> Threejs is a js 3D library. You can make 3D projects in the brower
+> with it.
+
+> [official site](https://www.threejs.org/)
