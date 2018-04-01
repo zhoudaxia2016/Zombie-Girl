@@ -192,6 +192,8 @@ loadPromise.then(function () {
   let model = land.model
   land.vertices = model.geometry.vertices.map(item => item.clone().applyMatrix4(model.matrixWorld))
 
+  render()
+
   fall(land, surrounddings)
   fall(land, zombies)
 
