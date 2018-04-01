@@ -1,7 +1,6 @@
 # Zombie Girl
 
-##
-[page](https://zhoudaxia2016.github.io/threejs-game/){:target="_blank"}
+## [page](https://zhoudaxia2016.github.io/threejs-game/){:target="_blank"}
 
 ## Game Intro
 
@@ -27,10 +26,12 @@ Find the zombie girls and kill them and prevent being killed
 ### Blender
 
 > Blender is a free and open source 3D creation suite.You can make models and animations with it.
-> [official site](https://www.blender.org/){:target="_blank"}
+
+[official site](https://www.blender.org/){:target="_blank"}
 
 ### Threejs
 
 > Threejs is a js 3D library. You can make 3D projects in the brower
 > with it.
-> [official site](https://www.threejs.org/){:target="_blank"}
+
+[official site](https://www.threejs.org/){:target="_blank"}
