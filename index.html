@@ -3,8 +3,8 @@
     <meta charset="utf-8">
     <title>Threejs and Blender Game Design</title>
     <link rel="stylesheet" type="text/css" href="styles/index.css">
-    <script src="https://cdn.bootcss.com/three.js/90/three.js"></script>
-    <script src="https://cdn.bootcss.com/stats.js/r17/Stats.js"></script>
+    <script src="https://cdn.bootcss.com/three.js/90/three.min.js"></script>
+    <script src="https://cdn.bootcss.com/stats.js/r17/Stats.min.js"></script>
     <script src="src/lib/FlyControls.js"></script>
     <script src="src/lib/OrbitControls.js"></script>
     <script src="src/constants.js"></script>
@@ -191,6 +191,10 @@ loadPromise.then(function () {
 
   let model = land.model
   land.vertices = model.geometry.vertices.map(item => item.clone().applyMatrix4(model.matrixWorld))
+
+  fall(land, surrounddings)
+  fall(land, zombies)
+
   render()
   animate()
 })
@@ -216,7 +220,7 @@ function init () {
 
   // renderer
   renderer = new THREE.WebGLRenderer()
-  renderer.shadowMapEnabled = true;
+  renderer.shadowMap.enabled = true
   renderer.setPixelRatio(window.devicePixelRatio)
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setClearColor(0xaaaaaa)
@@ -249,15 +253,6 @@ function render () {
 
 // 刷新游戏状态
 function update () {
-  if (!fall.surroundding_fall) {
-    fall(land, surrounddings)
-    fall.surroundding_fall = true
-  }
-
-  if (!fall.zombie_fall) {
-    fall(land, zombies)
-    fall.zombie_fall = true
-  }
 
   role.update()
   for (let zombie of zombies) {

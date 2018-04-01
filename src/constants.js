@@ -6,7 +6,7 @@ const IMAGE_DIR = ASSETS_DIR + 'images/'
 
 const FILES = {
   SURROUNDDING: MODEL_DIR + 'land.json',
-  ROLE: MODEL_DIR + 'dieAction.json',
+  ROLE: MODEL_DIR + 'boy.json',
   ZOMBIE: MODEL_DIR + 'girlZombie.json',
   ZOMBIE_SOUND: AUDIO_DIR + 'zombieSound4.mp3',
   HANDGUN_SOUND: AUDIO_DIR + 'handgun.mp3',

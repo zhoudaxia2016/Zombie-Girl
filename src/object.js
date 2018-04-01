@@ -259,7 +259,6 @@ Character.prototype.handleHit = function () {
 
 Character.prototype.hurt = function (damage) {
   this.hp = this.hp - damage
-  console.log('hurt', this.hp)
   if (this.hp <= 0) {
     this.dead = true
     this.die()
@@ -520,7 +519,9 @@ Zombie.prototype.perosonDetect = function (role) {
   let sqrt = Math.sqrt(x**2 + z**2)
   if (sqrt < ZOMBIE.ATTACK_DISTANCE) {
     this.forward = false
-    this.attack(role)
+    if (!role.dead) {
+      this.attack(role)
+    }
     return
   } else if (sqrt < ZOMBIE.DETECT_DISTANCE) {
     let angle_sin = Math.sin(x / sqrt)
@@ -533,7 +534,7 @@ Zombie.prototype.perosonDetect = function (role) {
   this.action.attack.stop()
 }
 
-Zombie.prototype.attack = function () {
+Zombie.prototype.attack = function (role) {
   role.hurt(1)
   let { mixer, action, clock } = this
   mixer.update(clock.getDelta())
@@ -553,7 +554,6 @@ function Bullet (url, person, speed = 1) {
   if (person.aiming) {
     let [xc, yc, zc] = person.vision.currentLookAt
     this.verticalAngle = getAngle(position.y -yc, zp - zl)
-    console.log(this.verticalAngle)
     this.horizontalAngle = (angle + getAngle(xc -xp, zp - zl)) % (2*Math.PI)
   } else {
     this.verticalAngle = getAngle(yl - position.y, zp - zl)

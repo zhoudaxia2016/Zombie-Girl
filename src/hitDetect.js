@@ -276,9 +276,13 @@ function getHitPairs (dataSet) {
 
 function hitDetect (qtree) {
   let cloneTree = qtree.clone()
-  cloneTree.insert({ obj: role, rect: role.rect })
+  if (!role.dead) {
+    cloneTree.insert({ obj: role, rect: role.rect })
+  }
   for (let zombie of zombies) {
-    cloneTree.insert({ obj: zombie, rect: zombie.rect })
+    if (!zombie.dead) {
+      cloneTree.insert({ obj: zombie, rect: zombie.rect })
+    }
   }
   for (let bullet of bullets) {
     let { x, z } = bullet.model.position
