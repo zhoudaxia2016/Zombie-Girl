@@ -507,6 +507,10 @@ Zombie.prototype.handleHit = function () {
 // 复活
 Zombie.prototype.revive = function () {
   this.sound.play()
+  let { left, right, top, bottom } = land.rect
+  let x = right + Math.random() * (left - right)
+  let z = right + Math.random() * (top - bottom)
+  this.model.position.set(x, 0, z)
   Character.prototype.revive.apply(this)
 }
 
