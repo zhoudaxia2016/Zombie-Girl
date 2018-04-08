@@ -12,12 +12,12 @@ const FILES = {
   HANDGUN_SOUND: AUDIO_DIR + 'handgun.mp3',
   BULLET: MODEL_DIR + 'bullet.json',
   SKY_IMAGES: [
-    IMAGE_DIR + 'skyposx.jpg',
-    IMAGE_DIR + 'skynegx.jpg',
-    IMAGE_DIR + 'skyposy.jpg',
-    IMAGE_DIR + 'skynegy.jpg',
-    IMAGE_DIR + 'skyposz.jpg',
-    IMAGE_DIR + 'skynegz.jpg'
+    IMAGE_DIR + 'skyposx.png',
+    IMAGE_DIR + 'skynegx.png',
+    IMAGE_DIR + 'skyposy.png',
+    IMAGE_DIR + 'skynegy.png',
+    IMAGE_DIR + 'skyposz.png',
+    IMAGE_DIR + 'skynegz.png'
   ],
 }
 

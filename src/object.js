@@ -176,11 +176,14 @@ Character.prototype.load = function () {
 
     this.model = mesh
     this.updateRect()
+    // 获取一个包含物体所有动画的mixer
     let mixer = new THREE.AnimationMixer(mesh)
+    // 根据名字获取action
     let walkAction = mixer.clipAction('walk')
     let shootAction = mixer.clipAction('shoot')
     let dieAction = mixer.clipAction('die')
     let attackAction = mixer.clipAction('attack')
+    // 设置action的属性
     walkAction.setDuration(this.moveDuration)
     if (shootAction) {
       shootAction.setDuration(1)
