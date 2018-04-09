@@ -206,7 +206,7 @@ Character.prototype.load = function () {
 
 // 后退
 Character.prototype.retreat = function (z) {
-  if (!z) z = this.speed
+  if (!z) z = this.speed + 0.05
   this.model.translateZ(-z)
   this.needUpdateRect = true
 }

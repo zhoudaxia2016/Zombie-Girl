@@ -297,7 +297,7 @@ function hitDetect (qtree) {
       case HIT_TYPES.ZOMB_SURR:
       case HIT_TYPES.PERS_ZOMB:
         if (rectHitDetect(obj1.rect, obj2.rect)) {
-          obj1.handleHit()
+          obj1.handleHit(obj2)
         }
         break
       case HIT_TYPES.BULL_SURR:
